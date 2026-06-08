@@ -14,10 +14,13 @@ namespace IdleTime.Player
         private float targetX;
         private bool hasTarget;
 
+        private Animator animator;
+
         private void Awake()
         {
             spriteRenderer = GetComponent<SpriteRenderer>();
             targetX = transform.position.x;
+            animator = GetComponent<Animator>();
 
             if (worldCamera == null)
             {
@@ -66,10 +69,21 @@ namespace IdleTime.Player
             float nextX = Mathf.MoveTowards(position.x, targetX, moveSpeed * Time.deltaTime);
             transform.position = new Vector3(nextX, position.y, position.z);
 
+            if (animator != null)
+            {
+                float xVelocity = Mathf.Abs(nextX - position.x) / Time.deltaTime;
+                animator.SetFloat("xVelocity", xVelocity);
+            }
+
             if (Mathf.Abs(transform.position.x - targetX) <= stopDistance)
             {
                 transform.position = new Vector3(targetX, position.y, position.z);
                 hasTarget = false;
+
+                if (animator != null)
+                {
+                    animator.SetFloat("xVelocity", 0f);
+                }
             }
         }
     }
