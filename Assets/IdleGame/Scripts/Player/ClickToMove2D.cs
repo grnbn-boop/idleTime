@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
 
@@ -109,6 +110,11 @@ namespace IdleTime.Player
         private void ReadClickTarget()
         {
             if (Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame)
+            {
+                return;
+            }
+
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
             {
                 return;
             }
