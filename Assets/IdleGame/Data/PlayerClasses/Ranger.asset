@@ -13,15 +13,17 @@ MonoBehaviour:
   m_Name: Ranger
   m_EditorClassIdentifier: Assembly-CSharp::IdleTime.Core.PlayerClass
   className: Ranger
+  damageStat: 1
+  accuracyStat: 2
   baseHP: 90
   baseMP: 50
   baseStr: 3
-  baseAgi: 8
+  baseDex: 8
   baseWis: 4
   baseLuk: 6
   hpPerLevel: 10
   mpPerLevel: 5
   strPerLevel: 1
-  agiPerLevel: 3
+  dexPerLevel: 3
   wisPerLevel: 2
   lukPerLevel: 1

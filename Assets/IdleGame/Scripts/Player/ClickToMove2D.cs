@@ -55,6 +55,7 @@ namespace IdleTime.Player
         private float knockbackVelocityX;
         private bool isInvincible;
         private Coroutine hitFlashCoroutine;
+        private bool suppressNextClick;
 
         private void Awake()
         {
@@ -116,10 +117,38 @@ namespace IdleTime.Player
             UpdateAnimation();
         }
 
+        // ── External control (called by PlayerAttack) ────────────────────────────
+
+        public void SuppressNextClick() => suppressNextClick = true;
+
+        public void SetMoveTarget(float worldX)
+        {
+            targetX = worldX;
+            hasTarget = true;
+            if (flipSpriteToDirection && spriteRenderer != null)
+                spriteRenderer.flipX = targetX < transform.position.x;
+        }
+
+        public void ClearMoveTarget() => hasTarget = false;
+
+        public void FaceDirection(float worldX)
+        {
+            if (flipSpriteToDirection && spriteRenderer != null)
+                spriteRenderer.flipX = worldX < transform.position.x;
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+
         private void ReadClickTarget()
         {
             if (Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame)
             {
+                return;
+            }
+
+            if (suppressNextClick)
+            {
+                suppressNextClick = false;
                 return;
             }
 

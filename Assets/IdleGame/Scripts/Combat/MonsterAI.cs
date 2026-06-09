@@ -256,6 +256,10 @@ namespace IdleTime.Combat
                 animator?.SetTrigger(AttackHash);
                 controller.TriggerAttack();
                 playerController?.ReceiveHit(controller.data.attack, transform.position);
+
+                var player = IdleTime.Core.PlayerManager.Instance?.ActiveCharacter;
+                if (player != null)
+                    Debug.Log($"[Combat] {gameObject.name} → Player: {controller.data.attack} dmg  (HP: {player.currentHP}/{player.MaxHP})  [DEF:{player.Defense}]");
             }
         }
 

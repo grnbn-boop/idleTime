@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.Serialization;
 using IdleTime.Core;
 
 public class PlayerStatsUI : MonoBehaviour
@@ -14,7 +15,8 @@ public class PlayerStatsUI : MonoBehaviour
 
     [Header("Stats")]
     [SerializeField] TextMeshProUGUI strText;
-    [SerializeField] TextMeshProUGUI agiText;
+    [FormerlySerializedAs("agiText")]
+    [SerializeField] TextMeshProUGUI dexText;
     [SerializeField] TextMeshProUGUI wisText;
     [SerializeField] TextMeshProUGUI lukText;
 
@@ -45,7 +47,7 @@ public class PlayerStatsUI : MonoBehaviour
         mpBar?.SetValues(c.currentMP, c.MaxMP);
 
         if (strText != null) strText.text = c.Str.ToString();
-        if (agiText != null) agiText.text = c.Agi.ToString();
+        if (dexText != null) dexText.text = c.Dex.ToString();
         if (wisText != null) wisText.text = c.Wis.ToString();
         if (lukText != null) lukText.text = c.Luk.ToString();
     }

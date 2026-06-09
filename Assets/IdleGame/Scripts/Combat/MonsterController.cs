@@ -36,15 +36,15 @@ namespace IdleTime.Combat
             if (col != null) col.isTrigger = true;
         }
 
-        // playerAccuracy: raw accuracy stat value (e.g. 13 = 5% hit, 38 = 100% hit on a matching monster)
-        // playerDefense: raw defense stat
-        // Returns damage dealt (0 on miss)
-        public float ReceiveAttack(int playerAccuracy, int playerDefense)
+        // playerAccuracy: used for hit-chance roll against this monster's min/max accuracy range.
+        // playerAttack:   raw attack power (Str); stub — applied as flat damage for now.
+        // Returns damage dealt (0 on miss).
+        public float ReceiveAttack(int playerAccuracy, int playerAttack)
         {
             if (!IsAlive) return 0f;
             if (!RollHit(playerAccuracy)) return 0f;
 
-            float damage = CalculateDamage(playerDefense);
+            float damage = CalculateDamage(playerAttack);
             ApplyDamage(damage);
             return damage;
         }
@@ -69,12 +69,10 @@ namespace IdleTime.Combat
             return UnityEngine.Random.value <= hitChance;
         }
 
-        private float CalculateDamage(int playerDefense)
+        private float CalculateDamage(int playerAttack)
         {
-            if (data.defenseToNegate <= 0) return data.attack;
-
-            float reduction = Mathf.Clamp01((float)playerDefense / data.defenseToNegate);
-            return data.attack * (1f - reduction);
+            // Stub: flat damage. Expand with monster defence stats when the combat system matures.
+            return playerAttack;
         }
 
         private void Die()

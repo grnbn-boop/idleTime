@@ -13,15 +13,17 @@ MonoBehaviour:
   m_Name: Normie
   m_EditorClassIdentifier: Assembly-CSharp::IdleTime.Core.PlayerClass
   className: Normie
+  damageStat: 3
+  accuracyStat: 3
   baseHP: 100
   baseMP: 50
   baseStr: 5
-  baseAgi: 5
+  baseDex: 5
   baseWis: 5
   baseLuk: 5
   hpPerLevel: 20
   mpPerLevel: 5
   strPerLevel: 1
-  agiPerLevel: 1
+  dexPerLevel: 1
   wisPerLevel: 1
   lukPerLevel: 1
