@@ -1,7 +1,9 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
+using IdleTime.Core;
 
 namespace IdleTime.Player
 {
@@ -35,6 +37,12 @@ namespace IdleTime.Player
         private readonly RaycastHit2D[] castHits = new RaycastHit2D[8];
         private ContactFilter2D terrainFilter;
 
+        [Header("Hit Response")]
+        [SerializeField] private float knockbackUpForce = 3f;
+        [SerializeField] private float knockbackHorizontalForce = 2f;
+        [SerializeField] private float knockbackDecay = 7f;
+        [SerializeField] private float invincibilityDuration = 0.8f;
+
         private float targetX;
         private bool hasTarget;
         private float verticalVelocity;
@@ -46,6 +54,10 @@ namespace IdleTime.Player
         private float wallJumpPreparationTimer;
         private float wallJumpHorizontalDelayTimer;
         private float horizontalVelocity;
+
+        private float knockbackVelocityX;
+        private bool isInvincible;
+        private Coroutine hitFlashCoroutine;
 
         private void Awake()
         {
@@ -144,6 +156,14 @@ namespace IdleTime.Player
 
         private float GetHorizontalMove(Vector2 position, float deltaTime)
         {
+            // Knockback overrides normal movement until it decays
+            if (Mathf.Abs(knockbackVelocityX) > 0.01f)
+            {
+                knockbackVelocityX = Mathf.MoveTowards(knockbackVelocityX, 0f, knockbackDecay * deltaTime);
+                horizontalVelocity = knockbackVelocityX;
+                return knockbackVelocityX * deltaTime;
+            }
+
             horizontalVelocity = 0f;
             if (!hasTarget)
             {
@@ -432,6 +452,55 @@ namespace IdleTime.Player
 
             verticalVelocity = Mathf.Sqrt(2f * gravity * jumpHeight);
             isGrounded = false;
+        }
+
+        // ── Hit response ──────────────────────────────────────────────────────────
+
+        public void ReceiveHit(float damage, Vector2 attackerPosition)
+        {
+            if (isInvincible) return;
+
+            // Deal damage and notify UI via PlayerManager
+            PlayerManager.Instance?.ModifyHP(-damage);
+
+            // Flash: fade from transparent back to opaque
+            if (hitFlashCoroutine != null) StopCoroutine(hitFlashCoroutine);
+            hitFlashCoroutine = StartCoroutine(HitFlashRoutine());
+        }
+
+        private IEnumerator HitFlashRoutine()
+        {
+            isInvincible = true;
+
+            if (spriteRenderer != null)
+            {
+                Color c = spriteRenderer.color;
+                c.a = 0f;
+                spriteRenderer.color = c;
+            }
+
+            float elapsed = 0f;
+            while (elapsed < invincibilityDuration)
+            {
+                elapsed += Time.deltaTime;
+                if (spriteRenderer != null)
+                {
+                    Color c = spriteRenderer.color;
+                    c.a = Mathf.Clamp01(elapsed / invincibilityDuration);
+                    spriteRenderer.color = c;
+                }
+                yield return null;
+            }
+
+            if (spriteRenderer != null)
+            {
+                Color c = spriteRenderer.color;
+                c.a = 1f;
+                spriteRenderer.color = c;
+            }
+
+            isInvincible = false;
+            hitFlashCoroutine = null;
         }
 
         private void UpdateAnimation()
