@@ -22,7 +22,6 @@ namespace IdleTime.Combat
 
         [Header("Edge & Wall Sensors")]
         [SerializeField] private float edgeProbeXOffset = 0.45f;
-        [SerializeField] private float edgeProbeYOffset = -0.45f;
         [SerializeField] private float edgeProbeDistance = 0.4f;
         [SerializeField] private float wallProbeXOffset = 0.4f;
         [SerializeField] private float wallProbeDistance = 0.1f;

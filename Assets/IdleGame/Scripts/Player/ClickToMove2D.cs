@@ -38,9 +38,6 @@ namespace IdleTime.Player
         private ContactFilter2D terrainFilter;
 
         [Header("Hit Response")]
-        [SerializeField] private float knockbackUpForce = 3f;
-        [SerializeField] private float knockbackHorizontalForce = 2f;
-        [SerializeField] private float knockbackDecay = 7f;
         [SerializeField] private float invincibilityDuration = 0.8f;
 
         private float targetX;
@@ -156,13 +153,6 @@ namespace IdleTime.Player
 
         private float GetHorizontalMove(Vector2 position, float deltaTime)
         {
-            // Knockback overrides normal movement until it decays
-            if (Mathf.Abs(knockbackVelocityX) > 0.01f)
-            {
-                knockbackVelocityX = Mathf.MoveTowards(knockbackVelocityX, 0f, knockbackDecay * deltaTime);
-                horizontalVelocity = knockbackVelocityX;
-                return knockbackVelocityX * deltaTime;
-            }
 
             horizontalVelocity = 0f;
             if (!hasTarget)
