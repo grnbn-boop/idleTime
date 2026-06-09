@@ -97,15 +97,31 @@ namespace IdleTime.Combat
         private List<(ItemDefinition item, int quantity)> RollLoot()
         {
             var drops = new List<(ItemDefinition, int)>();
-            if (data.lootTable == null) return drops;
 
+            if (data.lootTable == null || data.lootTable.Length == 0)
+            {
+                Debug.LogWarning($"[Loot] {data.monsterName}: loot table is null or empty — no drops possible.");
+                return drops;
+            }
+
+            Debug.Log($"[Loot] {data.monsterName}: rolling {data.lootTable.Length} loot entr(ies)");
             foreach (LootEntry entry in data.lootTable)
             {
-                if (entry.item == null) continue;
-                if (UnityEngine.Random.value <= entry.dropChance)
+                if (entry.item == null)
+                {
+                    Debug.LogWarning($"[Loot] {data.monsterName}: a loot entry has a null ItemDefinition — assign it in the MonsterData asset.");
+                    continue;
+                }
+
+                float roll = UnityEngine.Random.value;
+                bool hit = roll <= entry.dropChance;
+                Debug.Log($"[Loot]   {entry.item.itemName}: roll={roll:F3} vs chance={entry.dropChance:F3} => {(hit ? "DROP" : "miss")}");
+
+                if (hit)
                     drops.Add((entry.item, entry.quantity));
             }
 
+            Debug.Log($"[Loot] {data.monsterName}: {drops.Count} item(s) dropped");
             return drops;
         }
 

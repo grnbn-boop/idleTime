@@ -9449,9 +9449,7 @@ MonoBehaviour:
   nodesContainer: {fileID: 1924173326}
   nodeUIPrefab: {fileID: 2039158919174189234, guid: 37924ff3ec041d146a7bbd94fd258eca, type: 3}
   lineImagePrefab: {fileID: 8596345915826781463, guid: 7ded2b4f74aee5846938c82238891720, type: 3}
-  cellSize: 80
-  cellSpacing: 50
-  gridPadding: 20
+  nodeSize: 80
 --- !u!1 &1804184022
 GameObject:
   m_ObjectHideFlags: 0
@@ -10021,7 +10019,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1848102972}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 534100324}
+        m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
+        m_MethodName: ToggleSkills
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1848102972
 MonoBehaviour:
   m_ObjectHideFlags: 0

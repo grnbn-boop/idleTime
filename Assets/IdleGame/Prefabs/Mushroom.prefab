@@ -245,5 +245,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 37f343351532e734c9fb220d7bae3ecf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::IdleTime.Combat.LootDropper
-  worldItemPrefab: {fileID: 0}
+  worldItemPrefab: {fileID: 4611708994263065833, guid: 1fc69fef49dc41d439d1457ecef6494f, type: 3}
   dropRadius: 0.5

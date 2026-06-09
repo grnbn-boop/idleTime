@@ -20,4 +20,7 @@ MonoBehaviour:
   defenseToNegate: 20
   xpReward: 10
   respawnTime: 30
-  lootTable: []
+  lootTable:
+  - item: {fileID: 11400000, guid: 709450e3713aa124bbb12e718d5a52ea, type: 2}
+    quantity: 1
+    dropChance: 1

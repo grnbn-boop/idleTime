@@ -18,10 +18,10 @@ MonoBehaviour:
     position: {x: 0, y: 0}
     prerequisites: []
   - skill: {fileID: 11400000, guid: b57884ae314aefa47b0c102197476ffd, type: 2}
-    position: {x: 0, y: 0}
+    position: {x: -102, y: 55}
     prerequisites:
     - {fileID: 11400000, guid: aef8dc53dad93754cab8d585aaa99c4c, type: 2}
   - skill: {fileID: 11400000, guid: 184c669902d5bd543a03099f5b4a25da, type: 2}
-    position: {x: 0, y: 0}
+    position: {x: 98, y: 28}
     prerequisites:
     - {fileID: 11400000, guid: aef8dc53dad93754cab8d585aaa99c4c, type: 2}
