@@ -12,6 +12,7 @@ public class PlayerStatsUI : MonoBehaviour
     [Header("Bars")]
     [SerializeField] StatBar hpBar;
     [SerializeField] StatBar mpBar;
+    [SerializeField] StatBar xpBar;
 
     [Header("Stats")]
     [SerializeField] TextMeshProUGUI strText;
@@ -45,6 +46,7 @@ public class PlayerStatsUI : MonoBehaviour
 
         hpBar?.SetValues(c.currentHP, c.MaxHP);
         mpBar?.SetValues(c.currentMP, c.MaxMP);
+        xpBar?.SetValues(c.currentXP, c.XPToNextLevel);
 
         if (strText != null) strText.text = c.Str.ToString();
         if (dexText != null) dexText.text = c.Dex.ToString();

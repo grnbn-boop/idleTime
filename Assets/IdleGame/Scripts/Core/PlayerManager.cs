@@ -13,6 +13,7 @@ namespace IdleTime.Core
 
         public event Action OnActiveCharacterChanged;
         public event Action OnStatsChanged;
+        public event Action OnLevelUp;
 
         public CharacterData ActiveCharacter => characters.Count > 0 ? characters[activeIndex] : null;
         public IReadOnlyList<CharacterData> Characters => characters;
@@ -68,6 +69,26 @@ namespace IdleTime.Core
         {
             if (ActiveCharacter == null) return;
             ActiveCharacter.currentMP = Mathf.Clamp(value, 0, ActiveCharacter.MaxMP);
+            OnStatsChanged?.Invoke();
+        }
+
+        public void GainXP(float amount)
+        {
+            var c = ActiveCharacter;
+            if (c == null) return;
+
+            c.currentXP += amount;
+
+            bool leveledUp = false;
+            while (c.currentXP >= c.XPToNextLevel)
+            {
+                c.currentXP -= c.XPToNextLevel;
+                c.level++;
+                SkillManager.Instance?.GainSkillPoints(c, 1);
+                leveledUp = true;
+            }
+
+            if (leveledUp) OnLevelUp?.Invoke();
             OnStatsChanged?.Invoke();
         }
     }

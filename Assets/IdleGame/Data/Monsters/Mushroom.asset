@@ -15,8 +15,8 @@ MonoBehaviour:
   monsterName: Mushroom
   attack: 10
   maxHealth: 50
-  minAccuracy: 13
-  maxAccuracy: 38
+  minAccuracy: 3
+  maxAccuracy: 13
   defenseToNegate: 20
   xpReward: 10
   respawnTime: 30

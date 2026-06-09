@@ -64,8 +64,11 @@ namespace IdleTime.Combat
 
         private bool RollHit(float playerAccuracy)
         {
-            float t = Mathf.InverseLerp(data.minAccuracy, data.maxAccuracy, playerAccuracy);
-            float hitChance = Mathf.Lerp(MinHitChance, 1f, t);
+            // Power curve: ratio^0.6 gives fast early gains that taper near cap.
+            // maxAccuracy is the AccReq (stat needed for 100% hit).
+            float ratio = Mathf.Clamp01(playerAccuracy / data.maxAccuracy);
+            float hitChance = Mathf.Pow(ratio, 0.6f);
+            if (hitChance < MinHitChance) return false;
             return UnityEngine.Random.value <= hitChance;
         }
 

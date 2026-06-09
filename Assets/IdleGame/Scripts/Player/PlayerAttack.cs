@@ -147,7 +147,12 @@ namespace IdleTime.Player
             target = null;
         }
 
-        private void OnTargetDied(MonsterController mc) => ClearTarget();
+        private void OnTargetDied(MonsterController mc)
+        {
+            PlayerManager.Instance?.GainXP(mc.data.xpReward);
+            ClearTarget();
+        }
+
         private void OnTargetRespawned(MonsterController mc) => ClearTarget();
     }
 }
