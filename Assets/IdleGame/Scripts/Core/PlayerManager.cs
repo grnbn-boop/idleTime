@@ -11,6 +11,12 @@ namespace IdleTime.Core
         [SerializeField] List<CharacterData> characters = new();
         [SerializeField] int activeIndex = 0;
 
+        [Header("MP Regen")]
+        [Tooltip("MP restored per second before Wisdom is factored in.")]
+        [SerializeField] float baseMpRegenPerSecond = 0.5f;
+        [Tooltip("Extra MP/sec per point of Wisdom.")]
+        [SerializeField] float mpRegenPerWis = 0.1f;
+
         public event Action OnActiveCharacterChanged;
         public event Action OnStatsChanged;
         public event Action OnLevelUp;
@@ -58,6 +64,31 @@ namespace IdleTime.Core
         }
 
         public void NotifyStatsChanged() => OnStatsChanged?.Invoke();
+
+        void Update()
+        {
+            TickMpRegen(Time.deltaTime);
+        }
+
+        // Passive MP regen for the active character, scaled by Wisdom. To avoid
+        // refreshing the UI every frame, only fire OnStatsChanged when the displayed
+        // (rounded) MP actually changes.
+        void TickMpRegen(float deltaTime)
+        {
+            if (IsDead) return;
+            var c = ActiveCharacter;
+            if (c == null || c.currentMP >= c.MaxMP) return;
+
+            int before = Mathf.RoundToInt(c.currentMP);
+            float regen = baseMpRegenPerSecond + c.Wis * mpRegenPerWis;
+            c.currentMP = Mathf.Min(c.MaxMP, c.currentMP + regen * deltaTime);
+
+            if (Mathf.RoundToInt(c.currentMP) != before || c.currentMP >= c.MaxMP)
+                OnStatsChanged?.Invoke();
+        }
+
+        public float MpRegenPerSecond(CharacterData c) =>
+            c == null ? 0f : baseMpRegenPerSecond + c.Wis * mpRegenPerWis;
 
         public void SwitchCharacter(int index)
         {

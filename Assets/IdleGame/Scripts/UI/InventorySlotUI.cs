@@ -8,7 +8,8 @@ namespace IdleTime.UI
 {
     public class InventorySlotUI : MonoBehaviour,
         IBeginDragHandler, IDragHandler, IEndDragHandler,
-        IDropHandler, IPointerClickHandler
+        IDropHandler, IPointerClickHandler,
+        IPointerEnterHandler, IPointerExitHandler
     {
         [SerializeField] Image    iconImage;
         [SerializeField] TMP_Text countLabel;
@@ -44,6 +45,7 @@ namespace IdleTime.UI
 
         public void OnBeginDrag(PointerEventData eventData)
         {
+            TooltipManager.Instance?.Hide();   // don't trail a tooltip behind the dragged item
             Debug.Log($"[Drag] OnBeginDrag fired on {gameObject.name}, slotIndex={_slotIndex}");
             if (_slotIndex < 0)
             {
@@ -109,6 +111,19 @@ namespace IdleTime.UI
                 _lastClickTime = now;
             }
         }
+
+        // ── Hover tooltip ─────────────────────────────────────────────────────
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            var slot = Inventory.Instance?.GetSlot(_slotIndex);
+            if (slot == null || slot.IsEmpty) return;
+            TooltipManager.Instance?.Show(ItemTooltips.Describe(slot.item));
+        }
+
+        public void OnPointerExit(PointerEventData eventData) => TooltipManager.Instance?.Hide();
+
+        void OnDisable() => TooltipManager.Instance?.Hide();
 
         void TryEquip()
         {

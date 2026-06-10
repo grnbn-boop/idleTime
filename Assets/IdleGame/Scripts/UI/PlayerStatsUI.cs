@@ -1,7 +1,10 @@
+using System;
+using System.Text;
 using UnityEngine;
 using TMPro;
 using UnityEngine.Serialization;
 using IdleTime.Core;
+using IdleTime.UI;
 
 public class PlayerStatsUI : MonoBehaviour
 {
@@ -28,9 +31,12 @@ public class PlayerStatsUI : MonoBehaviour
 
     void Start()
     {
-        if (PlayerManager.Instance == null) return;
-        PlayerManager.Instance.OnActiveCharacterChanged += Refresh;
-        PlayerManager.Instance.OnStatsChanged += Refresh;
+        SetupTooltips();
+        if (PlayerManager.Instance != null)
+        {
+            PlayerManager.Instance.OnActiveCharacterChanged += Refresh;
+            PlayerManager.Instance.OnStatsChanged += Refresh;
+        }
         Refresh();
     }
 
@@ -62,4 +68,68 @@ public class PlayerStatsUI : MonoBehaviour
         if (accuracyText != null) accuracyText.text = c.Accuracy.ToString();
         if (defenseText != null)  defenseText.text  = c.Defense.ToString();
     }
+
+    // ── Hover tooltips (base/skill/gear breakdown) ───────────────────────────────
+
+    void SetupTooltips()
+    {
+        AddTooltip(strText, () => PrimaryBreakdown("Strength",  c => c.BaseStr, c => c.skillBonusStr, c => c.equipBonusStr));
+        AddTooltip(dexText, () => PrimaryBreakdown("Dexterity", c => c.BaseDex, c => c.skillBonusDex, c => c.equipBonusDex));
+        AddTooltip(wisText, () => PrimaryBreakdown("Wisdom",    c => c.BaseWis, c => c.skillBonusWis, c => c.equipBonusWis));
+        AddTooltip(lukText, () => PrimaryBreakdown("Luck",      c => c.BaseLuk, c => c.skillBonusLuk, c => c.equipBonusLuk));
+
+        AddTooltip(attackText,   () => DerivedBreakdown("Attack",   c => c.Attack,   c => c.skillBonusAttack,   c => c.equipBonusAttack,   c => c.playerClass != null ? StatName(c.playerClass.damageStat)   : null));
+        AddTooltip(accuracyText, () => DerivedBreakdown("Accuracy", c => c.Accuracy, c => c.skillBonusAccuracy, c => c.equipBonusAccuracy, c => c.playerClass != null ? StatName(c.playerClass.accuracyStat) : null));
+        AddTooltip(defenseText,  () => DerivedBreakdown("Defense",  c => c.Defense,  c => c.skillBonusDefense,  c => c.equipBonusDefense,  c => null));
+    }
+
+    static void AddTooltip(TextMeshProUGUI text, Func<string> provider)
+    {
+        if (text == null) return;
+        text.raycastTarget = true;   // needed to receive pointer enter/exit
+        var trigger = text.GetComponent<TooltipTrigger>();
+        if (trigger == null) trigger = text.gameObject.AddComponent<TooltipTrigger>();
+        trigger.ContentProvider = provider;
+    }
+
+    static string PrimaryBreakdown(string name, Func<CharacterData, int> baseF, Func<CharacterData, int> skillF, Func<CharacterData, int> gearF)
+    {
+        var c = PlayerManager.Instance?.ActiveCharacter;
+        if (c == null) return name;
+        int b = baseF(c), s = skillF(c), g = gearF(c);
+        var sb = new StringBuilder();
+        sb.Append($"<b>{name}</b>\nBase {b}");
+        if (s != 0) sb.Append($"\n{Signed(s)} skills");
+        if (g != 0) sb.Append($"\n{Signed(g)} gear");
+        sb.Append($"\n<b>= {b + s + g}</b>");
+        return sb.ToString();
+    }
+
+    static string DerivedBreakdown(string name, Func<CharacterData, int> totalF, Func<CharacterData, int> skillF, Func<CharacterData, int> gearF, Func<CharacterData, string> sourceF)
+    {
+        var c = PlayerManager.Instance?.ActiveCharacter;
+        if (c == null) return name;
+        int total = totalF(c), s = skillF(c), g = gearF(c);
+        int basePart = total - s - g;
+        string source = sourceF(c);
+        var sb = new StringBuilder();
+        sb.Append($"<b>{name}</b>");
+        if (source != null) sb.Append($"\nFrom {source} {basePart}");
+        else if (basePart != 0) sb.Append($"\nBase {basePart}");
+        if (s != 0) sb.Append($"\n{Signed(s)} skills");
+        if (g != 0) sb.Append($"\n{Signed(g)} gear");
+        sb.Append($"\n<b>= {total}</b>");
+        return sb.ToString();
+    }
+
+    static string Signed(int v) => (v >= 0 ? "+" : "") + v;
+
+    static string StatName(PrimaryStat s) => s switch
+    {
+        PrimaryStat.Str => "Strength",
+        PrimaryStat.Dex => "Dexterity",
+        PrimaryStat.Wis => "Wisdom",
+        PrimaryStat.Luk => "Luck",
+        _               => s.ToString(),
+    };
 }

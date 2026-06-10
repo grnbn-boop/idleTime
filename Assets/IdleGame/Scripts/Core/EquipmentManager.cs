@@ -76,6 +76,10 @@ namespace IdleTime.Core
             character.equipBonusDefense  = 0;
             character.equipBonusAccuracy = 0;
             character.equipBonusMaxHP    = 0;
+            character.equipBonusStr      = 0;
+            character.equipBonusDex      = 0;
+            character.equipBonusWis      = 0;
+            character.equipBonusLuk      = 0;
 
             foreach (EquipSlot slot in Enum.GetValues(typeof(EquipSlot)))
             {
@@ -84,6 +88,10 @@ namespace IdleTime.Core
                 character.equipBonusAttack   += item.bonusAttack;
                 character.equipBonusDefense  += item.bonusDefense;
                 character.equipBonusAccuracy += item.bonusAccuracy;
+                character.equipBonusStr      += item.bonusStr;
+                character.equipBonusDex      += item.bonusDex;
+                character.equipBonusWis      += item.bonusWis;
+                character.equipBonusLuk      += item.bonusLuk;
                 if (item is ArmorDefinition armor)
                     character.equipBonusMaxHP += armor.bonusMaxHP;
             }

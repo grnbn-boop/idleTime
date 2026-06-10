@@ -1,9 +1,11 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 using IdleTime.Core;
+using IdleTime.UI;
 
-public class SkillNodeUI : MonoBehaviour
+public class SkillNodeUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     [SerializeField] Image iconImage;
     [SerializeField] Image frameImage;
@@ -18,11 +20,13 @@ public class SkillNodeUI : MonoBehaviour
 
     public SkillNodeEntry NodeEntry { get; private set; }
     private System.Action<SkillNodeEntry> _onClick;
+    private CharacterData _character;
 
     public void Setup(SkillNodeEntry entry, CharacterData character, System.Action<SkillNodeEntry> onClick)
     {
         NodeEntry = entry;
         _onClick = onClick;
+        _character = character;
 
         iconImage.sprite = entry.skill.icon;
         iconImage.enabled = entry.skill.icon != null;
@@ -35,6 +39,7 @@ public class SkillNodeUI : MonoBehaviour
 
     public void Refresh(CharacterData character)
     {
+        _character = character;
         int level    = character.skills.GetLevel(NodeEntry.skill);
         bool maxed   = level >= NodeEntry.skill.maxLevel;
         bool unlocked = level > 0;
@@ -55,4 +60,16 @@ public class SkillNodeUI : MonoBehaviour
         icon.a = (unlocked || canUnlock) ? 1f : 0.35f;
         iconImage.color = icon;
     }
+
+    // ── Hover tooltip ───────────────────────────────────────────────────────────
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (NodeEntry == null) return;
+        TooltipManager.Instance?.Show(SkillTooltips.Describe(NodeEntry, _character));
+    }
+
+    public void OnPointerExit(PointerEventData eventData) => TooltipManager.Instance?.Hide();
+
+    void OnDisable() => TooltipManager.Instance?.Hide();
 }

@@ -32,15 +32,25 @@ namespace IdleTime.Core
         [NonSerialized] public int skillBonusMaxHP;
         [NonSerialized] public int skillBonusMaxMP;
         [NonSerialized] public int skillBonusAccuracy;
+        [NonSerialized] public int skillBonusStr;
+        [NonSerialized] public int skillBonusDex;
+        [NonSerialized] public int skillBonusWis;
+        [NonSerialized] public int skillBonusLuk;
 
         // ── Base stats (class formula) ────────────────────────────────────────
 
         public float MaxHP => (playerClass != null ? playerClass.baseHP + playerClass.hpPerLevel * (level - 1) : 0) + skillBonusMaxHP + equipBonusMaxHP;
         public float MaxMP => (playerClass != null ? playerClass.baseMP + playerClass.mpPerLevel * (level - 1) : 0) + skillBonusMaxMP;
-        public int Str => playerClass != null ? playerClass.baseStr + Mathf.RoundToInt(playerClass.strPerLevel * (level - 1)) : 0;
-        public int Dex => playerClass != null ? playerClass.baseDex + Mathf.RoundToInt(playerClass.dexPerLevel * (level - 1)) : 0;
-        public int Wis => playerClass != null ? playerClass.baseWis + Mathf.RoundToInt(playerClass.wisPerLevel * (level - 1)) : 0;
-        public int Luk => playerClass != null ? playerClass.baseLuk + Mathf.RoundToInt(playerClass.lukPerLevel * (level - 1)) : 0;
+        public int Str => BaseStr + skillBonusStr + equipBonusStr;
+        public int Dex => BaseDex + skillBonusDex + equipBonusDex;
+        public int Wis => BaseWis + skillBonusWis + equipBonusWis;
+        public int Luk => BaseLuk + skillBonusLuk + equipBonusLuk;
+
+        // Class-formula contribution only (no skill/gear bonuses) — the "base" line in stat breakdowns.
+        public int BaseStr => playerClass != null ? playerClass.baseStr + Mathf.RoundToInt(playerClass.strPerLevel * (level - 1)) : 0;
+        public int BaseDex => playerClass != null ? playerClass.baseDex + Mathf.RoundToInt(playerClass.dexPerLevel * (level - 1)) : 0;
+        public int BaseWis => playerClass != null ? playerClass.baseWis + Mathf.RoundToInt(playerClass.wisPerLevel * (level - 1)) : 0;
+        public int BaseLuk => playerClass != null ? playerClass.baseLuk + Mathf.RoundToInt(playerClass.lukPerLevel * (level - 1)) : 0;
 
         public string ClassName => playerClass != null ? playerClass.className : "None";
 
@@ -51,6 +61,10 @@ namespace IdleTime.Core
         [NonSerialized] public int equipBonusAccuracy;
         [NonSerialized] public int equipBonusDefense;
         [NonSerialized] public int equipBonusMaxHP;
+        [NonSerialized] public int equipBonusStr;
+        [NonSerialized] public int equipBonusDex;
+        [NonSerialized] public int equipBonusWis;
+        [NonSerialized] public int equipBonusLuk;
 
         // ── Derived combat stats ──────────────────────────────────────────────
         // Attack   = class damage-stat + weapon bonus

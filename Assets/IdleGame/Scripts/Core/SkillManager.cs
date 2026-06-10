@@ -73,6 +73,10 @@ public class SkillManager : MonoBehaviour
         character.skillBonusMaxHP = 0;
         character.skillBonusMaxMP = 0;
         character.skillBonusAccuracy = 0;
+        character.skillBonusStr = 0;
+        character.skillBonusDex = 0;
+        character.skillBonusWis = 0;
+        character.skillBonusLuk = 0;
 
         foreach (var tree in GetAccessibleTrees(character))
         {
@@ -88,6 +92,12 @@ public class SkillManager : MonoBehaviour
                     case SkillEffectType.BonusMaxHP:    character.skillBonusMaxHP    += Mathf.RoundToInt(val); break;
                     case SkillEffectType.BonusMaxMP:    character.skillBonusMaxMP    += Mathf.RoundToInt(val); break;
                     case SkillEffectType.BonusAccuracy: character.skillBonusAccuracy += Mathf.RoundToInt(val); break;
+                    // Primary-stat buffs. These cascade: Attack reads damageStat and Accuracy
+                    // reads accuracyStat, so e.g. +Str raises a Fighter's Attack automatically.
+                    case SkillEffectType.BonusStr:      character.skillBonusStr      += Mathf.RoundToInt(val); break;
+                    case SkillEffectType.BonusDex:      character.skillBonusDex      += Mathf.RoundToInt(val); break;
+                    case SkillEffectType.BonusWis:      character.skillBonusWis      += Mathf.RoundToInt(val); break;
+                    case SkillEffectType.BonusLuk:      character.skillBonusLuk      += Mathf.RoundToInt(val); break;
                 }
             }
         }

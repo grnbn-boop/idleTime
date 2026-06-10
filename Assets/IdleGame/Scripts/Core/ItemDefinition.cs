@@ -18,5 +18,11 @@ namespace IdleTime.Core
         public int bonusAttack;
         public int bonusDefense;
         public int bonusAccuracy;
+
+        [Header("Primary Stat Bonuses")]
+        public int bonusStr;
+        public int bonusDex;
+        public int bonusWis;
+        public int bonusLuk;
     }
 }

@@ -8,7 +8,8 @@ namespace IdleTime.UI
 {
     public class EquipmentSlotUI : MonoBehaviour,
         IBeginDragHandler, IDragHandler, IEndDragHandler,
-        IDropHandler, IPointerClickHandler
+        IDropHandler, IPointerClickHandler,
+        IPointerEnterHandler, IPointerExitHandler
     {
         [SerializeField] EquipSlot slot;
         [SerializeField] Image     iconImage;
@@ -41,6 +42,7 @@ namespace IdleTime.UI
 
         public void OnBeginDrag(PointerEventData eventData)
         {
+            TooltipManager.Instance?.Hide();
             var character = PlayerManager.Instance?.ActiveCharacter;
             if (character == null || character.equipment.IsEmpty(slot)) return;
 
@@ -103,6 +105,19 @@ namespace IdleTime.UI
                 _lastClickTime = now;
             }
         }
+
+        // ── Hover tooltip ─────────────────────────────────────────────────────
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            var item = PlayerManager.Instance?.ActiveCharacter?.equipment.Get(slot);
+            if (item == null) return;
+            TooltipManager.Instance?.Show(ItemTooltips.Describe(item));
+        }
+
+        public void OnPointerExit(PointerEventData eventData) => TooltipManager.Instance?.Hide();
+
+        void OnDisable() => TooltipManager.Instance?.Hide();
 
         void TryUnequip()
         {
