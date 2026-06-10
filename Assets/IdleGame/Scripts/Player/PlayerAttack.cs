@@ -134,9 +134,16 @@ namespace IdleTime.Player
 
             float damage = target.ReceiveAttack(character.Accuracy, character.Attack, character.Luk, out bool crit);
             if (damage > 0f)
+            {
+                DamageNumberSpawner.Show(target.transform.position + Vector3.up,
+                    damage, crit ? DamagePopupType.Crit : DamagePopupType.DealtToEnemy);
                 Debug.Log($"[Combat] Player → {target.gameObject.name}: {damage}{(crit ? " CRIT!" : "")} dmg  (HP: {target.CurrentHealth}/{target.data.maxHealth})  [ACC:{character.Accuracy} ATK:{character.Attack} LUK:{character.Luk}]");
+            }
             else
+            {
+                DamageNumberSpawner.Show(target.transform.position + Vector3.up, 0f, DamagePopupType.Miss);
                 Debug.Log($"[Combat] MISS — Player → {target.gameObject.name}  [ACC:{character.Accuracy}]");
+            }
 
             bool facingLeft = target.transform.position.x < transform.position.x;
             attackVFX?.Play(attackVFXOffset, facingLeft);

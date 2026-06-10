@@ -330,8 +330,10 @@ namespace IdleTime.Combat
             isPaused = false;
             attackTimer = 0f;
             desiredHorizontalVelocity = 0f;
+            // playerTransform is re-acquired every frame by ScanForPlayer; but
+            // playerController is only cached in Start, so don't null it here or
+            // a respawned monster can never land a hit again.
             playerTransform = null;
-            playerController = null;
             PickNewWanderTarget();
         }
 

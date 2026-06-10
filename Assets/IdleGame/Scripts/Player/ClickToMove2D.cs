@@ -515,6 +515,10 @@ namespace IdleTime.Player
             if (damage <= 0f) return;   // fully mitigated — no damage, no i-frames
             if (IsDead || isInvincible) return;
 
+            // Floating white number at the moment the hit actually lands.
+            Combat.DamageNumberSpawner.Show(transform.position + Vector3.up,
+                damage, Combat.DamagePopupType.TakenByPlayer);
+
             // Deal damage and notify UI via PlayerManager
             PlayerManager.Instance?.ModifyHP(-damage);
 
