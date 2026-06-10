@@ -11,7 +11,10 @@ namespace IdleTime.Player
     [DefaultExecutionOrder(-1)]
     public class PlayerAttack : MonoBehaviour
     {
-        [SerializeField] private float attackRange = 2f;
+        [Tooltip("Attack range when the main hand holds a melee weapon (or is empty).")]
+        [SerializeField] private float meleeRange = 2f;
+        [Tooltip("Attack range when the main hand holds a ranged weapon.")]
+        [SerializeField] private float rangedRange = 6f;
         [SerializeField] private float attackCooldown = 1.5f;
         [SerializeField] private Vector2 attackVFXOffset = Vector2.zero;
         [SerializeField] private LayerMask monsterLayer;
@@ -96,7 +99,7 @@ namespace IdleTime.Player
             if (target == null || !target.IsAlive) return;
 
             float dist = Vector2.Distance(transform.position, target.transform.position);
-            if (dist > attackRange)
+            if (dist > CurrentAttackRange())
             {
                 // Chase: update the move target every frame so the player follows a moving monster.
                 movement?.SetMoveTarget(target.transform.position.x);
@@ -114,14 +117,24 @@ namespace IdleTime.Player
             }
         }
 
+        // Range is driven by the equipped main-hand weapon's type: ranged weapons let
+        // the player stop and fire from further away. Unarmed / non-weapon → melee range.
+        private float CurrentAttackRange()
+        {
+            var c = PlayerManager.Instance?.ActiveCharacter;
+            if (c != null && c.equipment.Get(EquipSlot.MainHand) is WeaponDefinition weapon)
+                return weapon.weaponType == WeaponType.Ranged ? rangedRange : meleeRange;
+            return meleeRange;
+        }
+
         private void PerformAttack()
         {
             CharacterData character = PlayerManager.Instance?.ActiveCharacter;
             if (character == null) return;
 
-            float damage = target.ReceiveAttack(character.Accuracy, character.Attack);
+            float damage = target.ReceiveAttack(character.Accuracy, character.Attack, character.Luk, out bool crit);
             if (damage > 0f)
-                Debug.Log($"[Combat] Player → {target.gameObject.name}: {damage} dmg  (HP: {target.CurrentHealth}/{target.data.maxHealth})  [ACC:{character.Accuracy} ATK:{character.Attack}]");
+                Debug.Log($"[Combat] Player → {target.gameObject.name}: {damage}{(crit ? " CRIT!" : "")} dmg  (HP: {target.CurrentHealth}/{target.data.maxHealth})  [ACC:{character.Accuracy} ATK:{character.Attack} LUK:{character.Luk}]");
             else
                 Debug.Log($"[Combat] MISS — Player → {target.gameObject.name}  [ACC:{character.Accuracy}]");
 

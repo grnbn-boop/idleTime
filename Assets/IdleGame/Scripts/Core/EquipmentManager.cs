@@ -16,12 +16,28 @@ namespace IdleTime.Core
             DontDestroyOnLoad(gameObject);
         }
 
-        public bool Equip(ItemDefinition item, CharacterData character)
+        // True if this character's current class may equip the item into its slot.
+        public bool CanEquip(ItemDefinition item, CharacterData character)
         {
             if (item == null || character == null) return false;
             if (item.equipSlot == EquipSlot.None) return false;
+            return item.AllowsClass(character.playerClass);
+        }
+
+        // Equips the item, swapping any currently-worn item in that slot back to
+        // inventory. Returns false if the class can't wear it, or if a swap is needed
+        // but the inventory has no room for the displaced item.
+        public bool Equip(ItemDefinition item, CharacterData character)
+        {
+            if (!CanEquip(item, character)) return false;
+
+            var displaced = character.equipment.Get(item.equipSlot);
+            if (displaced != null && (Inventory.Instance == null || Inventory.Instance.IsFull))
+                return false;   // nowhere to put the old item — abort rather than destroy it
 
             character.equipment.Set(item.equipSlot, item);
+            if (displaced != null) Inventory.Instance.AddItem(displaced);
+
             RecomputeBonuses(character);
             OnEquipmentChanged?.Invoke();
             PlayerManager.Instance?.NotifyStatsChanged();

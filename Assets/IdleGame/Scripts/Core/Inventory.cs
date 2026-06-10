@@ -76,6 +76,21 @@ namespace IdleTime.Core
             return true;
         }
 
+        // Removes a single unit from a stack (for consuming items). Clears the slot
+        // when the count reaches zero.
+        public bool RemoveOne(int slotIndex)
+        {
+            if (slotIndex < 0 || slotIndex >= MaxSlots || _slots[slotIndex].IsEmpty) return false;
+            _slots[slotIndex].count--;
+            if (_slots[slotIndex].count <= 0)
+            {
+                _slots[slotIndex].item = null;
+                _slots[slotIndex].count = 0;
+            }
+            OnInventoryChanged?.Invoke();
+            return true;
+        }
+
         public InventorySlot GetSlot(int index) => _slots[index];
 
         // Places item directly into a specific slot (overwrites). Used by equipment drag.

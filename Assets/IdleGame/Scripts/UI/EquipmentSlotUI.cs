@@ -81,13 +81,19 @@ namespace IdleTime.UI
 
             var character = PlayerManager.Instance?.ActiveCharacter;
             if (character == null) { Debug.Log("[Drop] No active character"); return; }
-            if (!character.equipment.IsEmpty(slot)) { Debug.Log($"[Drop] Slot {slot} already occupied"); return; }
+            if (EquipmentManager.Instance == null || !EquipmentManager.Instance.CanEquip(dm.DraggedItem, character))
+            {
+                Debug.Log($"[Drop] {character.ClassName} can't equip '{dm.DraggedItem.itemName}'");
+                return;
+            }
 
             var item     = dm.DraggedItem;
             int srcIndex = dm.SourceSlotIndex;
             Debug.Log($"[Drop] Equipping '{item.itemName}' from inventory slot {srcIndex}");
+            // Equip swaps any worn item back to inventory; restore ours if it fails.
             Inventory.Instance?.RemoveAt(srcIndex);
-            EquipmentManager.Instance?.Equip(item, character);
+            if (!EquipmentManager.Instance.Equip(item, character))
+                Inventory.Instance?.SetSlot(srcIndex, item);
         }
 
         // ── Double-click to unequip ───────────────────────────────────────────
@@ -112,7 +118,7 @@ namespace IdleTime.UI
         {
             var item = PlayerManager.Instance?.ActiveCharacter?.equipment.Get(slot);
             if (item == null) return;
-            TooltipManager.Instance?.Show(ItemTooltips.Describe(item));
+            TooltipManager.Instance?.Show(ItemTooltips.Describe(item, PlayerManager.Instance?.ActiveCharacter));
         }
 
         public void OnPointerExit(PointerEventData eventData) => TooltipManager.Instance?.Hide();

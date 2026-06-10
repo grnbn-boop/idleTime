@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace IdleTime.Core
@@ -15,6 +16,9 @@ namespace IdleTime.Core
 
         // Equipment — only used when equipSlot != None
         public EquipSlot equipSlot = EquipSlot.None;
+
+        [Tooltip("Classes that may equip this item. Leave empty = any class.")]
+        public List<PlayerClass> allowedClasses = new();
         public int bonusAttack;
         public int bonusDefense;
         public int bonusAccuracy;
@@ -24,5 +28,22 @@ namespace IdleTime.Core
         public int bonusDex;
         public int bonusWis;
         public int bonusLuk;
+
+        [Header("Consumable — used when itemType == Consumable")]
+        public int restoreHP;
+        public int restoreMP;
+
+        // Empty allowedClasses = usable by everyone. Otherwise the class must be listed.
+        public bool AllowsClass(PlayerClass playerClass)
+        {
+            if (allowedClasses == null || allowedClasses.Count == 0) return true;
+            return playerClass != null && allowedClasses.Contains(playerClass);
+        }
+
+        public bool IsClassRestricted => allowedClasses != null && allowedClasses.Count > 0;
+        [Tooltip("Fraction of Max HP restored on use (0.25 = 25%). Added on top of the flat amount.")]
+        [Range(0f, 1f)] public float restoreHPPercent;
+        [Tooltip("Fraction of Max MP restored on use (0.25 = 25%). Added on top of the flat amount.")]
+        [Range(0f, 1f)] public float restoreMPPercent;
     }
 }

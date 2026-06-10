@@ -126,7 +126,8 @@ namespace IdleTime.Core
             if (character != null
                 && _item.equipSlot != EquipSlot.None
                 && character.equipment.IsEmpty(_item.equipSlot)
-                && EquipmentManager.Instance != null)
+                && EquipmentManager.Instance != null
+                && EquipmentManager.Instance.CanEquip(_item, character))
             {
                 EquipmentManager.Instance.Equip(_item, character);
                 Destroy(gameObject);

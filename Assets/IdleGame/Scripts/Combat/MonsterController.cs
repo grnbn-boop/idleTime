@@ -18,8 +18,6 @@ namespace IdleTime.Combat
         public event Action<List<(ItemDefinition item, int quantity)>> OnLootRolled;
         public event Action OnAttack;
 
-        private const float MinHitChance = 0.05f;
-
         private SpriteRenderer spriteRenderer;
         private Collider2D col;
         private Rigidbody2D rb;
@@ -36,15 +34,16 @@ namespace IdleTime.Combat
             if (col != null) col.isTrigger = true;
         }
 
-        // playerAccuracy: used for hit-chance roll against this monster's min/max accuracy range.
-        // playerAttack:   raw attack power (Str); stub — applied as flat damage for now.
-        // Returns damage dealt (0 on miss).
-        public float ReceiveAttack(int playerAccuracy, int playerAttack)
+        // Rolls hit chance against this monster's min/max accuracy, then applies a
+        // varied (and possibly crit) hit. Returns damage dealt (0 on miss); `crit`
+        // reports whether the hit critically struck (for VFX/log).
+        public float ReceiveAttack(int playerAccuracy, int playerAttack, int playerLuk, out bool crit)
         {
+            crit = false;
             if (!IsAlive) return 0f;
-            if (!RollHit(playerAccuracy)) return 0f;
+            if (!CombatMath.RollHit(playerAccuracy, data.minAccuracy, data.maxAccuracy)) return 0f;
 
-            float damage = CalculateDamage(playerAttack);
+            int damage = CombatMath.PlayerHitDamage(playerAttack, playerLuk, out crit);
             ApplyDamage(damage);
             return damage;
         }
@@ -60,22 +59,6 @@ namespace IdleTime.Combat
         public void TriggerAttack()
         {
             OnAttack?.Invoke();
-        }
-
-        private bool RollHit(float playerAccuracy)
-        {
-            // Power curve: ratio^0.6 gives fast early gains that taper near cap.
-            // maxAccuracy is the AccReq (stat needed for 100% hit).
-            float ratio = Mathf.Clamp01(playerAccuracy / data.maxAccuracy);
-            float hitChance = Mathf.Pow(ratio, 0.6f);
-            if (hitChance < MinHitChance) return false;
-            return UnityEngine.Random.value <= hitChance;
-        }
-
-        private float CalculateDamage(int playerAttack)
-        {
-            // Stub: flat damage. Expand with monster defence stats when the combat system matures.
-            return playerAttack;
         }
 
         private void Die()

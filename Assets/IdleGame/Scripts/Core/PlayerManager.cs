@@ -130,6 +130,18 @@ namespace IdleTime.Core
             OnStatsChanged?.Invoke();
         }
 
+        public bool CanAffordMP(float amount) => ActiveCharacter != null && ActiveCharacter.currentMP >= amount;
+
+        // The MP drain that future abilities/spells call. Spends nothing and returns
+        // false if the active character can't pay, so callers can gate their effect on
+        // it: `if (PlayerManager.Instance.TrySpendMP(cost)) { cast... }`.
+        public bool TrySpendMP(float amount)
+        {
+            if (amount < 0f || !CanAffordMP(amount)) return false;
+            ModifyMP(-amount);
+            return true;
+        }
+
         public void SetHP(float value)
         {
             if (ActiveCharacter == null) return;

@@ -29,7 +29,7 @@ namespace IdleTime.UI
             if (!slot.IsEmpty)
             {
                 iconImage.sprite   = slot.item.icon;
-                iconImage.color    = Color.white;
+                iconImage.color    = IconTint(slot.item);
                 countLabel.text    = slot.count > 1 ? slot.count.ToString() : "";
                 countLabel.enabled = slot.count > 1;
             }
@@ -104,7 +104,7 @@ namespace IdleTime.UI
             if (now - _lastClickTime <= DoubleClickThreshold)
             {
                 _lastClickTime = 0f;
-                TryEquip();
+                UseOrEquip();
             }
             else
             {
@@ -118,12 +118,31 @@ namespace IdleTime.UI
         {
             var slot = Inventory.Instance?.GetSlot(_slotIndex);
             if (slot == null || slot.IsEmpty) return;
-            TooltipManager.Instance?.Show(ItemTooltips.Describe(slot.item));
+            TooltipManager.Instance?.Show(ItemTooltips.Describe(slot.item, PlayerManager.Instance?.ActiveCharacter));
+        }
+
+        // Unwearable equipment (wrong class) reads at a glance via a red dim.
+        Color IconTint(ItemDefinition item)
+        {
+            var character = PlayerManager.Instance?.ActiveCharacter;
+            bool restricted = item.equipSlot != EquipSlot.None
+                           && character != null
+                           && !item.AllowsClass(character.playerClass);
+            return restricted ? new Color(1f, 0.55f, 0.55f, 0.6f) : Color.white;
         }
 
         public void OnPointerExit(PointerEventData eventData) => TooltipManager.Instance?.Hide();
 
         void OnDisable() => TooltipManager.Instance?.Hide();
+
+        // Double-click dispatch: consumables get used, gear gets equipped.
+        void UseOrEquip()
+        {
+            var slot = Inventory.Instance?.GetSlot(_slotIndex);
+            if (slot == null || slot.IsEmpty) return;
+            if (slot.item.itemType == ItemType.Consumable) TryUse();
+            else TryEquip();
+        }
 
         void TryEquip()
         {
@@ -132,11 +151,41 @@ namespace IdleTime.UI
             if (slot == null || slot.IsEmpty || slot.item.equipSlot == EquipSlot.None) return;
 
             var character = PlayerManager.Instance?.ActiveCharacter;
-            if (character == null || !character.equipment.IsEmpty(slot.item.equipSlot)) return;
+            if (character == null) return;
+            if (EquipmentManager.Instance == null || !EquipmentManager.Instance.CanEquip(slot.item, character)) return;
 
             var item = slot.item;
             Inventory.Instance.RemoveAt(_slotIndex);
-            EquipmentManager.Instance?.Equip(item, character);
+            // Equip swaps any worn item back to inventory; if it fails, return ours.
+            if (!EquipmentManager.Instance.Equip(item, character))
+                Inventory.Instance.SetSlot(_slotIndex, item);
+        }
+
+        void TryUse()
+        {
+            if (_slotIndex < 0) return;
+            var slot = Inventory.Instance?.GetSlot(_slotIndex);
+            if (slot == null || slot.IsEmpty) return;
+
+            var item = slot.item;
+            var pm = PlayerManager.Instance;
+            var c = pm?.ActiveCharacter;
+            if (c == null) return;
+
+            float hpRestore = item.restoreHP + item.restoreHPPercent * c.MaxHP;
+            float mpRestore = item.restoreMP + item.restoreMPPercent * c.MaxMP;
+
+            // Don't waste a consumable when it would restore nothing.
+            bool wouldHelp = (hpRestore > 0f && c.currentHP < c.MaxHP)
+                          || (mpRestore > 0f && c.currentMP < c.MaxMP);
+            if (!wouldHelp) return;
+
+            if (hpRestore > 0f) pm.ModifyHP(hpRestore);
+            if (mpRestore > 0f) pm.ModifyMP(mpRestore);
+            Inventory.Instance.RemoveOne(_slotIndex);
+
+            // Drop the tooltip if the stack is now empty (we're still hovering the slot).
+            if (Inventory.Instance.GetSlot(_slotIndex).IsEmpty) TooltipManager.Instance?.Hide();
         }
     }
 }

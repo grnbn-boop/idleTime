@@ -512,6 +512,7 @@ namespace IdleTime.Player
 
         public void ReceiveHit(float damage, Vector2 attackerPosition)
         {
+            if (damage <= 0f) return;   // fully mitigated — no damage, no i-frames
             if (IsDead || isInvincible) return;
 
             // Deal damage and notify UI via PlayerManager

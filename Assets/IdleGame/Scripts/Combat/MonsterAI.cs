@@ -255,11 +255,17 @@ namespace IdleTime.Combat
                 attackTimer = attackCooldown;
                 animator?.SetTrigger(AttackHash);
                 controller.TriggerAttack();
-                playerController?.ReceiveHit(controller.data.attack, transform.position);
 
                 var player = IdleTime.Core.PlayerManager.Instance?.ActiveCharacter;
+                int rawAttack = controller.data.attack;
+                int dealt = player != null
+                    ? CombatMath.MitigatedDamage(rawAttack, player.Defense, controller.data.defenseToNegate)
+                    : rawAttack;
+
+                playerController?.ReceiveHit(dealt, transform.position);
+
                 if (player != null)
-                    Debug.Log($"[Combat] {gameObject.name} → Player: {controller.data.attack} dmg  (HP: {player.currentHP}/{player.MaxHP})  [DEF:{player.Defense}]");
+                    Debug.Log($"[Combat] {gameObject.name} → Player: {dealt} dmg (raw {rawAttack}, DEF {player.Defense}/{controller.data.defenseToNegate})  HP {player.currentHP}/{player.MaxHP}");
             }
         }
 
