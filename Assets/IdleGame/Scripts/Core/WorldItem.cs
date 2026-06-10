@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace IdleTime.Core
 {
@@ -24,9 +25,10 @@ namespace IdleTime.Core
         void Awake()
         {
             _sr = GetComponent<SpriteRenderer>();
-
-            // Render in front of terrain.
             _sr.sortingOrder = 20;
+
+            // Trigger so the player walks through drops; OnMouseDown still works on triggers.
+            GetComponent<Collider2D>().isTrigger = true;
         }
 
         void Start()
@@ -106,10 +108,32 @@ namespace IdleTime.Core
             _sr.color = c;
         }
 
-        void OnMouseDown()
+        // Hold left mouse and move over items to collect them.
+        void OnMouseEnter()
         {
-            if (Inventory.Instance == null || _item == null) return;
-            if (Inventory.Instance.AddItem(_item))
+            if (Mouse.current.leftButton.isPressed)
+                TryPickup();
+        }
+
+        void OnMouseDown() => TryPickup();
+
+        void TryPickup()
+        {
+            if (_item == null) return;
+            if (UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()) return;
+
+            var character = PlayerManager.Instance?.ActiveCharacter;
+            if (character != null
+                && _item.equipSlot != EquipSlot.None
+                && character.equipment.IsEmpty(_item.equipSlot)
+                && EquipmentManager.Instance != null)
+            {
+                EquipmentManager.Instance.Equip(_item, character);
+                Destroy(gameObject);
+                return;
+            }
+
+            if (Inventory.Instance != null && Inventory.Instance.AddItem(_item))
                 Destroy(gameObject);
         }
     }

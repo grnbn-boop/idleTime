@@ -22,6 +22,9 @@ namespace IdleTime.Core
         // Per-character skill state
         public SkillRegistry skills = new();
 
+        // Per-character equipped gear
+        public EquipmentSlots equipment = new();
+
         // ── Skill bonuses (recomputed by SkillManager whenever skills change) ───
 
         [NonSerialized] public int skillBonusAttack;
@@ -32,7 +35,7 @@ namespace IdleTime.Core
 
         // ── Base stats (class formula) ────────────────────────────────────────
 
-        public float MaxHP => (playerClass != null ? playerClass.baseHP + playerClass.hpPerLevel * (level - 1) : 0) + skillBonusMaxHP;
+        public float MaxHP => (playerClass != null ? playerClass.baseHP + playerClass.hpPerLevel * (level - 1) : 0) + skillBonusMaxHP + equipBonusMaxHP;
         public float MaxMP => (playerClass != null ? playerClass.baseMP + playerClass.mpPerLevel * (level - 1) : 0) + skillBonusMaxMP;
         public int Str => playerClass != null ? playerClass.baseStr + Mathf.RoundToInt(playerClass.strPerLevel * (level - 1)) : 0;
         public int Dex => playerClass != null ? playerClass.baseDex + Mathf.RoundToInt(playerClass.dexPerLevel * (level - 1)) : 0;
@@ -47,6 +50,7 @@ namespace IdleTime.Core
         [NonSerialized] public int equipBonusAttack;
         [NonSerialized] public int equipBonusAccuracy;
         [NonSerialized] public int equipBonusDefense;
+        [NonSerialized] public int equipBonusMaxHP;
 
         // ── Derived combat stats ──────────────────────────────────────────────
         // Attack   = class damage-stat + weapon bonus

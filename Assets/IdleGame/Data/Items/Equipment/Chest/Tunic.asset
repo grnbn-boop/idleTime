@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 50f6daaf81310d643b38f4e204c4ea5c, type: 3}
+  m_Name: Tunic
+  m_EditorClassIdentifier: Assembly-CSharp::IdleTime.Core.ArmorDefinition
+  itemName: Tunic
+  icon: {fileID: -2095186943, guid: 93bc6499c8976ae42b04960c9d4426d6, type: 3}
+  itemType: 2
+  description: Something something hero of time.
+  equipSlot: 2
+  bonusAttack: 0
+  bonusDefense: 3
+  bonusAccuracy: 0
+  bonusMaxHP: 5

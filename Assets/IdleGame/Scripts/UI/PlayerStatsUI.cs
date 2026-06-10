@@ -21,6 +21,11 @@ public class PlayerStatsUI : MonoBehaviour
     [SerializeField] TextMeshProUGUI wisText;
     [SerializeField] TextMeshProUGUI lukText;
 
+    [Header("Derived")]
+    [SerializeField] TextMeshProUGUI attackText;
+    [SerializeField] TextMeshProUGUI accuracyText;
+    [SerializeField] TextMeshProUGUI defenseText;
+
     void Start()
     {
         if (PlayerManager.Instance == null) return;
@@ -48,9 +53,13 @@ public class PlayerStatsUI : MonoBehaviour
         mpBar?.SetValues(c.currentMP, c.MaxMP);
         xpBar?.SetValues(c.currentXP, c.XPToNextLevel);
 
-        if (strText != null) strText.text = c.Str.ToString();
-        if (dexText != null) dexText.text = c.Dex.ToString();
-        if (wisText != null) wisText.text = c.Wis.ToString();
-        if (lukText != null) lukText.text = c.Luk.ToString();
+        if (strText != null)     strText.text     = c.Str.ToString();
+        if (dexText != null)     dexText.text     = c.Dex.ToString();
+        if (wisText != null)     wisText.text     = c.Wis.ToString();
+        if (lukText != null)     lukText.text     = c.Luk.ToString();
+
+        if (attackText != null)   attackText.text   = c.Attack.ToString();
+        if (accuracyText != null) accuracyText.text = c.Accuracy.ToString();
+        if (defenseText != null)  defenseText.text  = c.Defense.ToString();
     }
 }

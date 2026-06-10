@@ -37,6 +37,8 @@ namespace IdleTime.Core
             OnActiveCharacterChanged?.Invoke();
         }
 
+        public void NotifyStatsChanged() => OnStatsChanged?.Invoke();
+
         public void SwitchCharacter(int index)
         {
             if (index < 0 || index >= characters.Count) return;

@@ -24,3 +24,24 @@ MonoBehaviour:
   - item: {fileID: 11400000, guid: 709450e3713aa124bbb12e718d5a52ea, type: 2}
     quantity: 1
     dropChance: 1
+  - item: {fileID: 11400000, guid: a6e7ea2f7ef6fbb4db1e03ddb60e3839, type: 2}
+    quantity: 1
+    dropChance: 1
+  - item: {fileID: 11400000, guid: 5257786b78ba08d4192f20d39c2717b4, type: 2}
+    quantity: 1
+    dropChance: 1
+  - item: {fileID: 11400000, guid: f6e42e52644f59e448ae450470fc3efd, type: 2}
+    quantity: 1
+    dropChance: 1
+  - item: {fileID: 11400000, guid: 1bdf67beaca84524c9bee1492b25307e, type: 2}
+    quantity: 1
+    dropChance: 1
+  - item: {fileID: 11400000, guid: 0d61018729650c04fb61d2e7112603c9, type: 2}
+    quantity: 1
+    dropChance: 1
+  - item: {fileID: 11400000, guid: b9c31497564545945a6fd2d31ec1edf7, type: 2}
+    quantity: 1
+    dropChance: 1
+  - item: {fileID: 11400000, guid: 2ff9067e79b5226418c85ebfd32f594c, type: 2}
+    quantity: 1
+    dropChance: 1

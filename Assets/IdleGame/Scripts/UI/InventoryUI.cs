@@ -7,6 +7,13 @@ namespace IdleTime.UI
     {
         [SerializeField] InventorySlotUI[] slots;
 
+        void Awake()
+        {
+            Debug.Log($"[InventoryUI] Awake — initialising {slots.Length} slot indices");
+            for (int i = 0; i < slots.Length; i++)
+                slots[i].Init(i);
+        }
+
         void OnEnable()
         {
             if (Inventory.Instance != null)

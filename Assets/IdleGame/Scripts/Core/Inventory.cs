@@ -38,7 +38,7 @@ namespace IdleTime.Core
 
         public bool AddItem(ItemDefinition item)
         {
-            bool stackable = item.itemType != ItemType.Weapon && item.itemType != ItemType.Armor;
+            bool stackable = item.equipSlot == EquipSlot.None;
 
             if (stackable)
             {
@@ -77,6 +77,27 @@ namespace IdleTime.Core
         }
 
         public InventorySlot GetSlot(int index) => _slots[index];
+
+        // Places item directly into a specific slot (overwrites). Used by equipment drag.
+        public void SetSlot(int index, ItemDefinition item, int count = 1)
+        {
+            if (index < 0 || index >= MaxSlots) return;
+            _slots[index].item  = item;
+            _slots[index].count = count;
+            OnInventoryChanged?.Invoke();
+        }
+
+        // Moves item from → to. If target is occupied the two slots swap.
+        public void SwapSlots(int from, int to)
+        {
+            if (from < 0 || from >= MaxSlots || to < 0 || to >= MaxSlots || from == to) return;
+            var tmp = (_slots[to].item, _slots[to].count);
+            _slots[to].item    = _slots[from].item;
+            _slots[to].count   = _slots[from].count;
+            _slots[from].item  = tmp.item;
+            _slots[from].count = tmp.count;
+            OnInventoryChanged?.Invoke();
+        }
 
         public bool IsFull
         {
