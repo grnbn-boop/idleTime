@@ -12,10 +12,9 @@ namespace IdleTime.Combat
         const float HitCurveExponent      = 0.6f;    // <1 → strong early gains, taper near cap
 
         // ── Player hit damage ─────────────────────────────────────────────────
-        public const float DamageVariance   = 0.15f; // ±15% per hit
-        public const float CritChancePerLuk = 0.005f; // +0.5% crit chance per Luk
-        public const float MaxCritChance     = 0.5f;  // crit chance cap
-        public const float CritMultiplier    = 1.5f;
+        // Crit chance/damage now live in StatFormulas (DEX → chance, STR → damage);
+        // PlayerHitDamage takes the resolved values so this stays pure mechanics.
+        public const float DamageVariance = 0.15f; // ±15% per hit
 
         // Hit chance ramps from MinHitChance at/below minAcc to 100% at maxAcc,
         // eased by HitCurveExponent so early accuracy investment pays off fast.
@@ -30,14 +29,14 @@ namespace IdleTime.Combat
         public static bool RollHit(float accuracy, float minAcc, float maxAcc)
             => Random.value <= HitChance(accuracy, minAcc, maxAcc);
 
-        public static float CritChance(int luk) => Mathf.Min(MaxCritChance, luk * CritChancePerLuk);
-
-        // Flat Attack ± variance, then a Luk-based crit. Always at least 1 on a hit.
-        public static int PlayerHitDamage(int attack, int luk, out bool crit)
+        // Flat Attack ± variance, scaled by a flat damageMultiplier (skill/gear "+% Damage"),
+        // then a crit roll. Crit chance (DEX) and crit multiplier (STR) are resolved by the
+        // caller via StatFormulas. Always ≥ 1 on a hit.
+        public static int PlayerHitDamage(int attack, float damageMultiplier, float critChance, float critMultiplier, out bool crit)
         {
-            float dmg = attack * (1f + Random.Range(-DamageVariance, DamageVariance));
-            crit = Random.value < CritChance(luk);
-            if (crit) dmg *= CritMultiplier;
+            float dmg = attack * (1f + Random.Range(-DamageVariance, DamageVariance)) * damageMultiplier;
+            crit = Random.value < critChance;
+            if (crit) dmg *= critMultiplier;
             return Mathf.Max(1, Mathf.RoundToInt(dmg));
         }
 

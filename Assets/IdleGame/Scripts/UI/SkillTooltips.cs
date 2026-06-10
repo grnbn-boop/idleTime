@@ -21,9 +21,10 @@ namespace IdleTime.UI
             string effect = EffectLabel(skill.effectType);
             if (effect != null && skill.effectValuePerLevel != 0f)
             {
-                sb.Append($"\n{Signed(skill.effectValuePerLevel)} {effect} per level");
+                bool pct = skill.IsPercentEffect;
+                sb.Append($"\n{Format(skill.effectValuePerLevel, pct)} {effect} per level");
                 if (level > 0)
-                    sb.Append($"\n<size=85%>Current: {Signed(skill.effectValuePerLevel * level)} {effect}</size>");
+                    sb.Append($"\n<size=85%>Current: {Format(skill.effectValuePerLevel * level, pct)} {effect}</size>");
             }
 
             if (!string.IsNullOrEmpty(skill.description))
@@ -49,18 +50,29 @@ namespace IdleTime.UI
 
         static string EffectLabel(SkillEffectType type) => type switch
         {
-            SkillEffectType.BonusAttack   => "Attack",
-            SkillEffectType.BonusDefense  => "Defense",
-            SkillEffectType.BonusMaxHP    => "Max HP",
-            SkillEffectType.BonusMaxMP    => "Max MP",
-            SkillEffectType.BonusAccuracy => "Accuracy",
-            SkillEffectType.BonusStr      => "STR",
-            SkillEffectType.BonusDex      => "DEX",
-            SkillEffectType.BonusWis      => "WIS",
-            SkillEffectType.BonusLuk      => "LUK",
-            _                             => null,
+            SkillEffectType.BonusAttack     => "Attack",
+            SkillEffectType.BonusDefense    => "Defense",
+            SkillEffectType.BonusMaxHP      => "Max HP",
+            SkillEffectType.BonusMaxMP      => "Max MP",
+            SkillEffectType.BonusAccuracy   => "Accuracy",
+            SkillEffectType.BonusStr        => "STR",
+            SkillEffectType.BonusDex        => "DEX",
+            SkillEffectType.BonusWis        => "WIS",
+            SkillEffectType.BonusLuk        => "LUK",
+            SkillEffectType.BonusCritChance => "Crit Chance",
+            SkillEffectType.BonusCritDamage => "Crit Damage",
+            SkillEffectType.BonusMoveSpeed  => "Move Speed",
+            SkillEffectType.BonusDropRate   => "Drop Rate",
+            SkillEffectType.BonusXPGain     => "EXP Gain",
+            SkillEffectType.BonusBossDamage => "Boss Damage",
+            SkillEffectType.BonusMpRegen    => "MP Regen",
+            SkillEffectType.BonusDamage     => "Damage",
+            _                               => null,
         };
 
-        static string Signed(float v) => (v >= 0 ? "+" : "") + v.ToString("0.##");
+        // Percent effects store a fraction (0.05) — show it as +5%. Flat effects show the raw value.
+        static string Format(float v, bool percent) => percent
+            ? (v >= 0 ? "+" : "") + (v * 100f).ToString("0.##") + "%"
+            : (v >= 0 ? "+" : "") + v.ToString("0.##");
     }
 }

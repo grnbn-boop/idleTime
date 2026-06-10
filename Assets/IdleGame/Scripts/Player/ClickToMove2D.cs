@@ -274,7 +274,9 @@ namespace IdleTime.Player
                 }
             }
 
-            float moveDistance = Mathf.Min(Mathf.Abs(remainingDistance), moveSpeed * deltaTime);
+            // DEX scales movement speed (StatFormulas.MoveSpeedMultiplier); ×1 if no active character.
+            float speed = moveSpeed * (PlayerManager.Instance?.ActiveCharacter?.MoveSpeedMultiplier ?? 1f);
+            float moveDistance = Mathf.Min(Mathf.Abs(remainingDistance), speed * deltaTime);
             horizontalVelocity = direction * moveDistance / deltaTime;
             return direction * moveDistance;
         }

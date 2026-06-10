@@ -8,6 +8,9 @@ namespace IdleTime.Core
     {
         public string monsterName = "Monster";
 
+        [Tooltip("Bosses take bonus damage scaled by the player's Wisdom (see StatFormulas).")]
+        public bool isBoss;
+
         [Header("Combat Stats")]
         public int attack = 10;
         public float maxHealth = 50f;

@@ -18,9 +18,14 @@ namespace IdleTime.Combat
         public event Action<List<(ItemDefinition item, int quantity)>> OnLootRolled;
         public event Action OnAttack;
 
+        [Header("Animation")]
+        [SerializeField] private string deathAnimationState = "die";
+        [SerializeField] private float deathAnimationDuration = 0.6f;
+
         private SpriteRenderer spriteRenderer;
         private Collider2D col;
         private Rigidbody2D rb;
+        private Animator animator;
 
         private void Awake()
         {
@@ -28,6 +33,7 @@ namespace IdleTime.Combat
             spriteRenderer = GetComponent<SpriteRenderer>();
             col = GetComponent<Collider2D>();
             rb = GetComponent<Rigidbody2D>();
+            animator = GetComponent<Animator>();
 
             // Enemies should not physically block the player or each other;
             // combat uses direct method calls so a trigger collider is sufficient.
@@ -35,15 +41,17 @@ namespace IdleTime.Combat
         }
 
         // Rolls hit chance against this monster's min/max accuracy, then applies a
-        // varied (and possibly crit) hit. Returns damage dealt (0 on miss); `crit`
-        // reports whether the hit critically struck (for VFX/log).
-        public float ReceiveAttack(int playerAccuracy, int playerAttack, int playerLuk, out bool crit)
+        // varied (and possibly crit) hit. Crit chance/multiplier are resolved by the
+        // caller (DEX/STR via StatFormulas). Bosses take bonusDamageMultiplier (WIS) on top.
+        // Returns damage dealt (0 on miss); `crit` reports whether the hit critically struck.
+        public float ReceiveAttack(int playerAccuracy, int playerAttack, float damageMultiplier, float critChance, float critMultiplier, float bossDamageMultiplier, out bool crit)
         {
             crit = false;
             if (!IsAlive) return 0f;
             if (!CombatMath.RollHit(playerAccuracy, data.minAccuracy, data.maxAccuracy)) return 0f;
 
-            int damage = CombatMath.PlayerHitDamage(playerAttack, playerLuk, out crit);
+            int damage = CombatMath.PlayerHitDamage(playerAttack, damageMultiplier, critChance, critMultiplier, out crit);
+            if (data.isBoss) damage = Mathf.RoundToInt(damage * bossDamageMultiplier);
             ApplyDamage(damage);
             return damage;
         }
@@ -65,8 +73,10 @@ namespace IdleTime.Combat
         {
             IsAlive = false;
 
-            // Disable visuals and physics but keep the GO active so the respawn coroutine can run
-            if (spriteRenderer != null) spriteRenderer.enabled = false;
+            PlayDeathAnimation();
+
+            // Disable combat physics immediately, but keep visuals alive long enough
+            // for the death animation to be seen.
             if (col != null) col.enabled = false;
             if (rb != null) rb.simulated = false;
 
@@ -74,7 +84,7 @@ namespace IdleTime.Combat
             OnLootRolled?.Invoke(drops);
             OnDeath?.Invoke(this);
 
-            StartCoroutine(RespawnRoutine());
+            StartCoroutine(DeathAndRespawnRoutine());
         }
 
         private List<(ItemDefinition item, int quantity)> RollLoot()
@@ -87,7 +97,11 @@ namespace IdleTime.Combat
                 return drops;
             }
 
-            Debug.Log($"[Loot] {data.monsterName}: rolling {data.lootTable.Length} loot entr(ies)");
+            // Luck scales every drop chance (capped at 100%). Falls back to ×1 if there's
+            // no active character (e.g. test scene with no PlayerManager).
+            float dropMultiplier = IdleTime.Core.PlayerManager.Instance?.ActiveCharacter?.DropRateMultiplier ?? 1f;
+
+            Debug.Log($"[Loot] {data.monsterName}: rolling {data.lootTable.Length} loot entr(ies) (drop ×{dropMultiplier:F2})");
             foreach (LootEntry entry in data.lootTable)
             {
                 if (entry.item == null)
@@ -96,9 +110,10 @@ namespace IdleTime.Combat
                     continue;
                 }
 
+                float chance = Mathf.Clamp01(entry.dropChance * dropMultiplier);
                 float roll = UnityEngine.Random.value;
-                bool hit = roll <= entry.dropChance;
-                Debug.Log($"[Loot]   {entry.item.itemName}: roll={roll:F3} vs chance={entry.dropChance:F3} => {(hit ? "DROP" : "miss")}");
+                bool hit = roll <= chance;
+                Debug.Log($"[Loot]   {entry.item.itemName}: roll={roll:F3} vs chance={chance:F3} => {(hit ? "DROP" : "miss")}");
 
                 if (hit)
                     drops.Add((entry.item, entry.quantity));
@@ -108,9 +123,17 @@ namespace IdleTime.Combat
             return drops;
         }
 
-        private IEnumerator RespawnRoutine()
+        private IEnumerator DeathAndRespawnRoutine()
         {
-            yield return new WaitForSeconds(data.respawnTime);
+            float visibleDeathDuration = PlayableDeathDuration;
+            if (visibleDeathDuration > 0f)
+                yield return new WaitForSeconds(visibleDeathDuration);
+
+            if (spriteRenderer != null) spriteRenderer.enabled = false;
+
+            float remainingRespawnTime = Mathf.Max(0f, data.respawnTime - visibleDeathDuration);
+            if (remainingRespawnTime > 0f)
+                yield return new WaitForSeconds(remainingRespawnTime);
 
             CurrentHealth = data.maxHealth;
             IsAlive = true;
@@ -118,8 +141,34 @@ namespace IdleTime.Combat
             if (spriteRenderer != null) spriteRenderer.enabled = true;
             if (col != null) col.enabled = true;
             if (rb != null) rb.simulated = true;
+            if (animator != null)
+            {
+                animator.Rebind();
+                animator.Update(0f);
+            }
 
             OnRespawn?.Invoke(this);
+        }
+
+        private float PlayableDeathDuration
+        {
+            get
+            {
+                if (animator == null || string.IsNullOrEmpty(deathAnimationState))
+                    return 0f;
+
+                return animator.HasState(0, Animator.StringToHash(deathAnimationState))
+                    ? Mathf.Max(0f, deathAnimationDuration)
+                    : 0f;
+            }
+        }
+
+        private void PlayDeathAnimation()
+        {
+            if (PlayableDeathDuration <= 0f) return;
+
+            if (spriteRenderer != null) spriteRenderer.enabled = true;
+            animator.Play(deathAnimationState, 0, 0f);
         }
     }
 }

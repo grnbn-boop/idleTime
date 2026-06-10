@@ -26,6 +26,12 @@ public class SkillTreeUI : MonoBehaviour
     [Header("Layout")]
     [SerializeField] float nodeSize = 80f;
 
+#if UNITY_EDITOR
+    [Header("Editor Preview")]
+    [Tooltip("Tree to lay out when using the Build Preview button in the inspector. Editor-only.")]
+    [SerializeField] SkillTreeDefinition previewTree;
+#endif
+
     private readonly List<SkillNodeUI> _spawnedNodes = new();
     private readonly List<Image>       _spawnedLines = new();
     private SkillTreeDefinition _currentTree;
@@ -173,4 +179,101 @@ public class SkillTreeUI : MonoBehaviour
         _spawnedNodes.Clear();
         _spawnedLines.Clear();
     }
+
+#if UNITY_EDITOR
+    // ── Editor layout preview ────────────────────────────────────────────────────
+    // Spawns the node prefabs (and prerequisite lines) at the positions stored in
+    // previewTree so the full layout is visible while editing. The spawned objects
+    // are flagged DontSaveInEditor so they never get baked into the saved scene.
+
+    const string PreviewPrefix = "__Preview_";
+
+    public void EditorBuildPreview()
+    {
+        EditorClearPreview();
+
+        if (previewTree == null)
+        {
+            Debug.LogWarning("[SkillTreeUI] Assign a Preview Tree before building the preview.", this);
+            return;
+        }
+        if (nodesContainer == null || nodeUIPrefab == null)
+        {
+            Debug.LogWarning("[SkillTreeUI] Nodes Container and Node UI Prefab must be assigned to build the preview.", this);
+            return;
+        }
+
+        var rtBySkill = new Dictionary<SkillDefinition, RectTransform>();
+
+        foreach (var entry in previewTree.nodes)
+        {
+            if (entry.skill == null) continue;
+
+            var go = (GameObject)UnityEditor.PrefabUtility.InstantiatePrefab(nodeUIPrefab.gameObject, nodesContainer);
+            go.name      = PreviewPrefix + entry.skill.skillName;
+            go.hideFlags = HideFlags.DontSaveInEditor;
+
+            var node = go.GetComponent<SkillNodeUI>();
+            if (node != null) node.EditorPreview(entry);
+
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot     = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(nodeSize, nodeSize);
+            rt.anchoredPosition = entry.position;
+
+            rtBySkill[entry.skill] = rt;
+        }
+
+        if (linesContainer != null && lineImagePrefab != null)
+        {
+            foreach (var entry in previewTree.nodes)
+            {
+                if (entry.skill == null) continue;
+                foreach (var prereq in entry.prerequisites)
+                {
+                    if (prereq == null) continue;
+                    if (!rtBySkill.TryGetValue(prereq, out var from)) continue;
+                    if (!rtBySkill.TryGetValue(entry.skill, out var to)) continue;
+                    EditorDrawLine(from.anchoredPosition, to.anchoredPosition);
+                }
+            }
+        }
+    }
+
+    void EditorDrawLine(Vector2 from, Vector2 to)
+    {
+        Vector2 dir  = to - from;
+        float   dist = dir.magnitude;
+        if (dist < 1f) return;
+
+        var go = (GameObject)UnityEditor.PrefabUtility.InstantiatePrefab(lineImagePrefab.gameObject, linesContainer);
+        go.name      = PreviewPrefix + "Line";
+        go.hideFlags = HideFlags.DontSaveInEditor;
+
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot     = new Vector2(0.5f, 0.5f);
+        rt.sizeDelta = new Vector2(dist, 4f);
+        rt.anchoredPosition = (from + to) * 0.5f;
+        rt.localRotation    = Quaternion.Euler(0f, 0f, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg);
+    }
+
+    public void EditorClearPreview()
+    {
+        EditorClearPreviewChildren(nodesContainer);
+        EditorClearPreviewChildren(linesContainer);
+    }
+
+    static void EditorClearPreviewChildren(RectTransform container)
+    {
+        if (container == null) return;
+        for (int i = container.childCount - 1; i >= 0; i--)
+        {
+            var child = container.GetChild(i);
+            if (child.name.StartsWith(PreviewPrefix))
+                DestroyImmediate(child.gameObject);
+        }
+    }
+#endif
 }

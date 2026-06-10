@@ -10,11 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 502096791e5e13e42bfcb432c312302a, type: 3}
-  m_Name: WisUp
+  m_Name: MonsterDamage
   m_EditorClassIdentifier: Assembly-CSharp::IdleTime.Core.SkillDefinition
-  skillName: Magic Man
-  description: Because this day, a magical life lesson comes to you!
-  icon: {fileID: 1321795001, guid: 93bc6499c8976ae42b04960c9d4426d6, type: 3}
+  skillName: That's A Lotta Damage
+  description: S'allota daaaaaaaaaahhhhhhhmage.
+  icon: {fileID: -1982228571, guid: 93bc6499c8976ae42b04960c9d4426d6, type: 3}
   maxLevel: 50
-  effectType: 8
-  effectValuePerLevel: 1
+  effectType: 17
+  effectValuePerLevel: 0.01
+  isPercentage: 1

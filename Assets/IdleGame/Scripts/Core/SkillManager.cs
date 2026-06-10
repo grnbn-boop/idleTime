@@ -78,6 +78,18 @@ public class SkillManager : MonoBehaviour
         character.skillBonusWis = 0;
         character.skillBonusLuk = 0;
 
+        character.skillBonusMaxHPPercent   = 0f;
+        character.skillBonusAttackPercent  = 0f;
+        character.skillBonusDefensePercent = 0f;
+        character.skillBonusCritChance     = 0f;
+        character.skillBonusCritDamage     = 0f;
+        character.skillBonusMoveSpeed      = 0f;
+        character.skillBonusDropRate       = 0f;
+        character.skillBonusXPGain         = 0f;
+        character.skillBonusBossDamage     = 0f;
+        character.skillBonusMpRegen        = 0f;
+        character.skillBonusDamage          = 0f;
+
         foreach (var tree in GetAccessibleTrees(character))
         {
             foreach (var node in tree.nodes)
@@ -85,11 +97,23 @@ public class SkillManager : MonoBehaviour
                 int lvl = character.skills.GetLevel(node.skill);
                 if (lvl <= 0) continue;
                 float val = node.skill.effectValuePerLevel * lvl;
+                bool percent = node.skill.isPercentage;
                 switch (node.skill.effectType)
                 {
-                    case SkillEffectType.BonusAttack:   character.skillBonusAttack   += Mathf.RoundToInt(val); break;
-                    case SkillEffectType.BonusDefense:  character.skillBonusDefense  += Mathf.RoundToInt(val); break;
-                    case SkillEffectType.BonusMaxHP:    character.skillBonusMaxHP    += Mathf.RoundToInt(val); break;
+                    // Flat stat effects honour the isPercentage toggle: when set, the value
+                    // is a fraction routed into the matching percent bucket instead.
+                    case SkillEffectType.BonusAttack:
+                        if (percent) character.skillBonusAttackPercent += val;
+                        else         character.skillBonusAttack += Mathf.RoundToInt(val);
+                        break;
+                    case SkillEffectType.BonusDefense:
+                        if (percent) character.skillBonusDefensePercent += val;
+                        else         character.skillBonusDefense += Mathf.RoundToInt(val);
+                        break;
+                    case SkillEffectType.BonusMaxHP:
+                        if (percent) character.skillBonusMaxHPPercent += val;
+                        else         character.skillBonusMaxHP += Mathf.RoundToInt(val);
+                        break;
                     case SkillEffectType.BonusMaxMP:    character.skillBonusMaxMP    += Mathf.RoundToInt(val); break;
                     case SkillEffectType.BonusAccuracy: character.skillBonusAccuracy += Mathf.RoundToInt(val); break;
                     // Primary-stat buffs. These cascade: Attack reads damageStat and Accuracy
@@ -98,6 +122,15 @@ public class SkillManager : MonoBehaviour
                     case SkillEffectType.BonusDex:      character.skillBonusDex      += Mathf.RoundToInt(val); break;
                     case SkillEffectType.BonusWis:      character.skillBonusWis      += Mathf.RoundToInt(val); break;
                     case SkillEffectType.BonusLuk:      character.skillBonusLuk      += Mathf.RoundToInt(val); break;
+                    // Stat-derived effects — always additive fractions.
+                    case SkillEffectType.BonusCritChance: character.skillBonusCritChance += val; break;
+                    case SkillEffectType.BonusCritDamage: character.skillBonusCritDamage += val; break;
+                    case SkillEffectType.BonusMoveSpeed:  character.skillBonusMoveSpeed  += val; break;
+                    case SkillEffectType.BonusDropRate:   character.skillBonusDropRate   += val; break;
+                    case SkillEffectType.BonusXPGain:     character.skillBonusXPGain     += val; break;
+                    case SkillEffectType.BonusBossDamage: character.skillBonusBossDamage += val; break;
+                    case SkillEffectType.BonusMpRegen:    character.skillBonusMpRegen    += val; break;
+                    case SkillEffectType.BonusDamage:     character.skillBonusDamage     += val; break;
                 }
             }
         }

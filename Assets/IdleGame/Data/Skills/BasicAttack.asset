@@ -15,6 +15,7 @@ MonoBehaviour:
   skillName: Basic Attack
   description: Your good ole basic attack.
   icon: {fileID: 253636668, guid: 93bc6499c8976ae42b04960c9d4426d6, type: 3}
-  maxLevel: 1
-  effectType: 1
+  maxLevel: 50
+  effectType: 17
   effectValuePerLevel: 1
+  isPercentage: 0

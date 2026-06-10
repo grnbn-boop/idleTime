@@ -11,6 +11,8 @@ public class PlayerStatsUI : MonoBehaviour
     [Header("Identity")]
     [SerializeField] TextMeshProUGUI characterNameText;
     [SerializeField] TextMeshProUGUI classNameText;
+    [Tooltip("The 'current' text under the Level label; shows the active character's level.")]
+    [SerializeField] TextMeshProUGUI levelText;
 
     [Header("Bars")]
     [SerializeField] StatBar hpBar;
@@ -54,6 +56,7 @@ public class PlayerStatsUI : MonoBehaviour
 
         if (characterNameText != null) characterNameText.text = c.characterName;
         if (classNameText != null) classNameText.text = c.ClassName;
+        if (levelText != null) levelText.text = c.level.ToString();
 
         hpBar?.SetValues(c.currentHP, c.MaxHP);
         mpBar?.SetValues(c.currentMP, c.MaxMP);

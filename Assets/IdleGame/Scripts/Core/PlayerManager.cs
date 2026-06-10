@@ -11,12 +11,6 @@ namespace IdleTime.Core
         [SerializeField] List<CharacterData> characters = new();
         [SerializeField] int activeIndex = 0;
 
-        [Header("MP Regen")]
-        [Tooltip("MP restored per second before Wisdom is factored in.")]
-        [SerializeField] float baseMpRegenPerSecond = 0.5f;
-        [Tooltip("Extra MP/sec per point of Wisdom.")]
-        [SerializeField] float mpRegenPerWis = 0.1f;
-
         public event Action OnActiveCharacterChanged;
         public event Action OnStatsChanged;
         public event Action OnLevelUp;
@@ -80,15 +74,14 @@ namespace IdleTime.Core
             if (c == null || c.currentMP >= c.MaxMP) return;
 
             int before = Mathf.RoundToInt(c.currentMP);
-            float regen = baseMpRegenPerSecond + c.Wis * mpRegenPerWis;
+            float regen = c.MpRegenPerSecond;   // WIS-scaled, from StatFormulas
             c.currentMP = Mathf.Min(c.MaxMP, c.currentMP + regen * deltaTime);
 
             if (Mathf.RoundToInt(c.currentMP) != before || c.currentMP >= c.MaxMP)
                 OnStatsChanged?.Invoke();
         }
 
-        public float MpRegenPerSecond(CharacterData c) =>
-            c == null ? 0f : baseMpRegenPerSecond + c.Wis * mpRegenPerWis;
+        public float MpRegenPerSecond(CharacterData c) => c?.MpRegenPerSecond ?? 0f;
 
         public void SwitchCharacter(int index)
         {
@@ -162,7 +155,8 @@ namespace IdleTime.Core
             var c = ActiveCharacter;
             if (c == null) return;
 
-            c.currentXP += amount;
+            // Luck scales EXP gained (see StatFormulas.XPMultiplier).
+            c.currentXP += amount * c.XPMultiplier;
 
             bool leveledUp = false;
             while (c.currentXP >= c.XPToNextLevel)

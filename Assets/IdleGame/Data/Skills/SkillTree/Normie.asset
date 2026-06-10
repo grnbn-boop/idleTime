@@ -25,3 +25,15 @@ MonoBehaviour:
     position: {x: 98, y: 28}
     prerequisites:
     - {fileID: 11400000, guid: aef8dc53dad93754cab8d585aaa99c4c, type: 2}
+  - skill: {fileID: 11400000, guid: 0322b79826e7ee24ab88c9d19d0f78f6, type: 2}
+    position: {x: -48, y: -91}
+    prerequisites:
+    - {fileID: 11400000, guid: aef8dc53dad93754cab8d585aaa99c4c, type: 2}
+  - skill: {fileID: 11400000, guid: 4f7d55b55bd775941bb4d3b448262ab8, type: 2}
+    position: {x: 60, y: -84}
+    prerequisites:
+    - {fileID: 11400000, guid: aef8dc53dad93754cab8d585aaa99c4c, type: 2}
+  - skill: {fileID: 11400000, guid: fdbaa3479b84d444b8ff21f14d7fffd0, type: 2}
+    position: {x: 60, y: 120}
+    prerequisites:
+    - {fileID: 11400000, guid: aef8dc53dad93754cab8d585aaa99c4c, type: 2}

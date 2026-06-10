@@ -132,12 +132,13 @@ namespace IdleTime.Player
             CharacterData character = PlayerManager.Instance?.ActiveCharacter;
             if (character == null) return;
 
-            float damage = target.ReceiveAttack(character.Accuracy, character.Attack, character.Luk, out bool crit);
+            float damage = target.ReceiveAttack(character.Accuracy, character.Attack, character.DamageMultiplier,
+                character.CritChance, character.CritDamageMultiplier, character.BossDamageMultiplier, out bool crit);
             if (damage > 0f)
             {
                 DamageNumberSpawner.Show(target.transform.position + Vector3.up,
                     damage, crit ? DamagePopupType.Crit : DamagePopupType.DealtToEnemy);
-                Debug.Log($"[Combat] Player → {target.gameObject.name}: {damage}{(crit ? " CRIT!" : "")} dmg  (HP: {target.CurrentHealth}/{target.data.maxHealth})  [ACC:{character.Accuracy} ATK:{character.Attack} LUK:{character.Luk}]");
+                Debug.Log($"[Combat] Player → {target.gameObject.name}: {damage}{(crit ? " CRIT!" : "")} dmg  (HP: {target.CurrentHealth}/{target.data.maxHealth})  [ACC:{character.Accuracy} ATK:{character.Attack} DMG×{character.DamageMultiplier:F2} CRIT:{character.CritChance:P0}×{character.CritDamageMultiplier:F2}{(target.data.isBoss ? $" BOSS×{character.BossDamageMultiplier:F2}" : "")}]");
             }
             else
             {

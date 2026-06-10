@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using IdleTime.Combat;
 
 namespace IdleTime.Core
 {
@@ -37,9 +38,27 @@ namespace IdleTime.Core
         [NonSerialized] public int skillBonusWis;
         [NonSerialized] public int skillBonusLuk;
 
-        // ── Base stats (class formula) ────────────────────────────────────────
+        // Percentage buckets (fractions: 0.1 = +10%). Percent-of-base multipliers plus
+        // the additive percentages that feed the stat-derived formulas in StatFormulas.
+        [NonSerialized] public float skillBonusMaxHPPercent;
+        [NonSerialized] public float skillBonusAttackPercent;
+        [NonSerialized] public float skillBonusDefensePercent;
+        [NonSerialized] public float skillBonusCritChance;
+        [NonSerialized] public float skillBonusCritDamage;
+        [NonSerialized] public float skillBonusMoveSpeed;
+        [NonSerialized] public float skillBonusDropRate;
+        [NonSerialized] public float skillBonusXPGain;
+        [NonSerialized] public float skillBonusBossDamage;
+        [NonSerialized] public float skillBonusMpRegen;
+        [NonSerialized] public float skillBonusDamage;
 
-        public float MaxHP => (playerClass != null ? playerClass.baseHP + playerClass.hpPerLevel * (level - 1) : 0) + skillBonusMaxHP + equipBonusMaxHP;
+        // ── Base stats (class formula) ────────────────────────────────────────
+        // STR adds flat Max HP on top of the class formula, then the percent bucket scales it.
+
+        public float MaxHP =>
+            ((playerClass != null ? playerClass.baseHP + playerClass.hpPerLevel * (level - 1) : 0)
+             + StatFormulas.MaxHpFromStr(Str) + skillBonusMaxHP + equipBonusMaxHP)
+            * (1f + skillBonusMaxHPPercent + equipBonusMaxHPPercent);
         public float MaxMP => (playerClass != null ? playerClass.baseMP + playerClass.mpPerLevel * (level - 1) : 0) + skillBonusMaxMP;
         public int Str => BaseStr + skillBonusStr + equipBonusStr;
         public int Dex => BaseDex + skillBonusDex + equipBonusDex;
@@ -66,14 +85,44 @@ namespace IdleTime.Core
         [NonSerialized] public int equipBonusWis;
         [NonSerialized] public int equipBonusLuk;
 
-        // ── Derived combat stats ──────────────────────────────────────────────
-        // Attack   = class damage-stat + weapon bonus
-        // Accuracy = class accuracy-stat + weapon bonus
-        // Defense  = armor/skill bonuses (no base contribution yet)
+        // Percentage buckets from gear (fractions). Mirror the skill buckets so gear can
+        // grant percent bonuses too; EquipmentManager resets/sums these.
+        [NonSerialized] public float equipBonusMaxHPPercent;
+        [NonSerialized] public float equipBonusAttackPercent;
+        [NonSerialized] public float equipBonusDefensePercent;
+        [NonSerialized] public float equipBonusCritChance;
+        [NonSerialized] public float equipBonusCritDamage;
+        [NonSerialized] public float equipBonusMoveSpeed;
+        [NonSerialized] public float equipBonusDropRate;
+        [NonSerialized] public float equipBonusXPGain;
+        [NonSerialized] public float equipBonusBossDamage;
+        [NonSerialized] public float equipBonusMpRegen;
+        [NonSerialized] public float equipBonusDamage;
 
-        public int Attack   => GetBaseStat(playerClass?.damageStat   ?? PrimaryStat.Str) + equipBonusAttack   + skillBonusAttack;
+        // ── Derived combat stats ──────────────────────────────────────────────
+        // Attack   = (class damage-stat + weapon bonus) × percent bucket
+        // Accuracy = class accuracy-stat + weapon bonus
+        // Defense  = (armor/skill bonuses) × percent bucket
+
+        public int Attack   => Mathf.RoundToInt((GetBaseStat(playerClass?.damageStat ?? PrimaryStat.Str) + equipBonusAttack + skillBonusAttack)
+                                                * (1f + skillBonusAttackPercent + equipBonusAttackPercent));
         public int Accuracy => GetBaseStat(playerClass?.accuracyStat ?? PrimaryStat.Dex) + equipBonusAccuracy + skillBonusAccuracy;
-        public int Defense  => equipBonusDefense + skillBonusDefense;
+        public int Defense  => Mathf.RoundToInt((equipBonusDefense + skillBonusDefense)
+                                                * (1f + skillBonusDefensePercent + equipBonusDefensePercent));
+
+        // ── Stat-derived gameplay modifiers (STR/DEX/WIS/LUK → effects) ────────
+        // Each reads its primary stat plus the matching additive percent bucket.
+
+        public float CritChance          => StatFormulas.CritChance(Dex, skillBonusCritChance + equipBonusCritChance);
+        public float CritDamageMultiplier => StatFormulas.CritDamageMultiplier(Str, skillBonusCritDamage + equipBonusCritDamage);
+        public float MoveSpeedMultiplier  => StatFormulas.MoveSpeedMultiplier(Dex, skillBonusMoveSpeed + equipBonusMoveSpeed);
+        public float DropRateMultiplier   => StatFormulas.DropRateMultiplier(Luk, skillBonusDropRate + equipBonusDropRate);
+        public float XPMultiplier         => StatFormulas.XPMultiplier(Luk, skillBonusXPGain + equipBonusXPGain);
+        public float BossDamageMultiplier => StatFormulas.BossDamageMultiplier(Wis, skillBonusBossDamage + equipBonusBossDamage);
+        public float MpRegenPerSecond     => StatFormulas.MpRegenPerSecond(Wis, skillBonusMpRegen + equipBonusMpRegen);
+
+        // Flat multiplier on all outgoing hit damage (skills/gear, not tied to a primary stat).
+        public float DamageMultiplier     => Mathf.Max(0f, 1f + skillBonusDamage + equipBonusDamage);
 
         public void EnsureBaseClassUnlocked()
         {

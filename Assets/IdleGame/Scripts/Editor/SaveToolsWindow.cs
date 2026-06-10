@@ -70,6 +70,15 @@ namespace IdleTime.EditorTools
                     if (GUILayout.Button("View", GUILayout.Width(50)))
                         EditorUtility.OpenWithDefaultApp(file);
 
+                    if (GUILayout.Button("Reset L1", GUILayout.Width(70)) &&
+                        EditorUtility.DisplayDialog("Reset to level 1?",
+                            $"Reset {fileName} to a fresh level-1 character? Keeps the name and class but clears XP, skills, unlocked classes, gear, and inventory.",
+                            "Reset", "Cancel"))
+                    {
+                        SaveManager.ResetSaveFileToLevelOne(file);
+                        GUIUtility.ExitGUI();
+                    }
+
                     if (GUILayout.Button("Delete", GUILayout.Width(60)) &&
                         EditorUtility.DisplayDialog("Delete save file?",
                             $"Delete {fileName}? The character resets to Inspector defaults on next Play.",

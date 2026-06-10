@@ -97,6 +97,21 @@ namespace IdleTime.Core
             character.equipBonusWis      = 0;
             character.equipBonusLuk      = 0;
 
+            // Percent buckets — no gear source authors these yet, but CharacterData reads
+            // them, so reset to 0 here. Sum them in the loop below once gear gains
+            // percent fields (e.g. item.bonusMaxHPPercent).
+            character.equipBonusMaxHPPercent   = 0f;
+            character.equipBonusAttackPercent  = 0f;
+            character.equipBonusDefensePercent = 0f;
+            character.equipBonusCritChance     = 0f;
+            character.equipBonusCritDamage     = 0f;
+            character.equipBonusMoveSpeed      = 0f;
+            character.equipBonusDropRate       = 0f;
+            character.equipBonusXPGain         = 0f;
+            character.equipBonusBossDamage     = 0f;
+            character.equipBonusMpRegen        = 0f;
+            character.equipBonusDamage         = 0f;
+
             foreach (EquipSlot slot in Enum.GetValues(typeof(EquipSlot)))
             {
                 var item = character.equipment.Get(slot);

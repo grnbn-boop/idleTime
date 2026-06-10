@@ -230,6 +230,34 @@ namespace IdleTime.Core
             if (Directory.Exists(SaveFolder)) Directory.Delete(SaveFolder, true);
         }
 
+        // Rewrites a character's save file as a fresh level-1 record while keeping
+        // their identity: same name and class, but XP, skills, extra unlocked
+        // classes, gear, and inventory are all stripped. Unlike WipeCharacter this
+        // leaves a file in place (so the character isn't re-seeded from Inspector
+        // defaults). Returns false if there's no readable file to reset.
+        public static bool ResetCharacterToLevelOne(string characterName) =>
+            ResetSaveFileToLevelOne(CharacterPath(characterName));
+
+        // Path-based variant so the Save Tools window can reset a file it's already
+        // listing without round-tripping the (sanitized) character name.
+        public static bool ResetSaveFileToLevelOne(string path)
+        {
+            if (!File.Exists(path)) return false;
+
+            var data = ReadJson<CharacterSaveData>(path);
+            if (data == null) return false;
+
+            data.level = 1;
+            data.currentXP = 0;
+            data.skills = new SkillRegistry();        // back to starting points, nothing learned
+            data.unlockedClassIds = new List<string>(); // base class is re-added on load via EnsureBaseClassUnlocked
+            data.equipment = new List<EquipmentSaveEntry>();
+            data.inventory = new List<InventorySaveEntry>();
+
+            WriteJson(path, data);
+            return true;
+        }
+
         [ContextMenu("Wipe Active Character Save")]
         void WipeActiveCharacterSave()
         {
@@ -237,6 +265,17 @@ namespace IdleTime.Core
             if (c == null) { Debug.Log("[Save] No active character."); return; }
             WipeCharacter(c.characterName);
             Debug.Log($"[Save] Wiped save for '{c.characterName}'. Note: quitting Play Mode auto-saves and will re-create it.");
+        }
+
+        [ContextMenu("Reset Active Character to Level 1")]
+        void ResetActiveCharacterSave()
+        {
+            var c = PlayerManager.Instance?.ActiveCharacter;
+            if (c == null) { Debug.Log("[Save] No active character."); return; }
+            if (ResetCharacterToLevelOne(c.characterName))
+                Debug.Log($"[Save] Reset '{c.characterName}' to level 1. Note: this rewrote the file — quitting Play Mode auto-saves the live character over it, so reset after exiting Play Mode (or reload to see it).");
+            else
+                Debug.Log($"[Save] No save file for '{c.characterName}' yet — nothing to reset.");
         }
 
         // ── Lookups & IO ──────────────────────────────────────────────────────

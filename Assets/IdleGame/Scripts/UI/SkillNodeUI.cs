@@ -37,6 +37,26 @@ public class SkillNodeUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         Refresh(character);
     }
 
+#if UNITY_EDITOR
+    // Edit-mode preview: show the icon/frame without any runtime character or SkillManager state.
+    public void EditorPreview(SkillNodeEntry entry)
+    {
+        NodeEntry = entry;
+
+        if (iconImage != null)
+        {
+            iconImage.sprite  = entry.skill != null ? entry.skill.icon : null;
+            iconImage.enabled = entry.skill != null && entry.skill.icon != null;
+            Color icon = iconImage.color;
+            icon.a = 1f;
+            iconImage.color = icon;
+        }
+
+        if (frameImage != null) frameImage.color = availableColor;
+        if (levelText != null)  levelText.text  = "Lv0";
+    }
+#endif
+
     public void Refresh(CharacterData character)
     {
         _character = character;
