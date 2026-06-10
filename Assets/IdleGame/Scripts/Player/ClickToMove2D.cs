@@ -40,6 +40,12 @@ namespace IdleTime.Player
         [Header("Hit Response")]
         [SerializeField] private float invincibilityDuration = 0.8f;
 
+        [Header("Death Animation")]
+        [Tooltip("Upward launch speed when the death sequence starts (then gravity takes over).")]
+        [SerializeField] private float deathPopSpeed = 8f;
+        [Tooltip("Y-axis spin rate in degrees/sec — reads as a 2D coin-flip under the orthographic camera.")]
+        [SerializeField] private float deathSpinSpeed = 720f;
+
         private float targetX;
         private bool hasTarget;
         private float verticalVelocity;
@@ -56,6 +62,7 @@ namespace IdleTime.Player
         private bool isInvincible;
         private Coroutine hitFlashCoroutine;
         private bool suppressNextClick;
+        private bool deathActive;   // this avatar is playing the pop/spin/fall cinematic
 
         private void Awake()
         {
@@ -91,13 +98,41 @@ namespace IdleTime.Player
             }
         }
 
+        private void Start()
+        {
+            if (PlayerManager.Instance != null)
+            {
+                PlayerManager.Instance.OnPlayerDeath += HandleDeath;
+                PlayerManager.Instance.OnPlayerRespawn += HandleRespawn;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (PlayerManager.Instance != null)
+            {
+                PlayerManager.Instance.OnPlayerDeath -= HandleDeath;
+                PlayerManager.Instance.OnPlayerRespawn -= HandleRespawn;
+            }
+        }
+
+        private bool IsDead => PlayerManager.Instance != null && PlayerManager.Instance.IsDead;
+
         private void Update()
         {
+            if (deathActive) { UpdateDeathSpin(); return; }   // cinematic owns the avatar
+            if (IsDead) return;                                // dead but not animating (e.g. fresh avatar pre-respawn): no input
             ReadClickTarget();
         }
 
         private void FixedUpdate()
         {
+            if (deathActive)
+            {
+                DeathFallStep(Time.fixedDeltaTime);
+                return;
+            }
+
             landedThisFrame = false;
             Vector2 position = body.position;
 
@@ -477,14 +512,55 @@ namespace IdleTime.Player
 
         public void ReceiveHit(float damage, Vector2 attackerPosition)
         {
-            if (isInvincible) return;
+            if (IsDead || isInvincible) return;
 
             // Deal damage and notify UI via PlayerManager
             PlayerManager.Instance?.ModifyHP(-damage);
 
+            // If that was the killing blow, the death visual (HandleDeath) owns the
+            // sprite now — don't fire the hit-flash over it.
+            if (IsDead) return;
+
             // Flash: fade from transparent back to opaque
             if (hitFlashCoroutine != null) StopCoroutine(hitFlashCoroutine);
             hitFlashCoroutine = StartCoroutine(HitFlashRoutine());
+        }
+
+        // ── Death & respawn response ────────────────────────────────────────────
+        // On death this avatar pops up, spins on the Y-axis, and falls through the
+        // floor. DeathSequenceController fades the screen and reloads the level; the
+        // respawned avatar is a fresh scene object, so HandleRespawn only matters for
+        // a death-state cleared *without* a reload (e.g. a direct PlayerManager.Respawn).
+
+        private void HandleDeath()
+        {
+            deathActive = true;
+            hasTarget = false;
+            if (hitFlashCoroutine != null) { StopCoroutine(hitFlashCoroutine); hitFlashCoroutine = null; }
+
+            // Pop upward; FixedUpdate's death branch then lets gravity pull the body
+            // back down — with ground checks skipped, it falls through the world.
+            verticalVelocity = deathPopSpeed;
+        }
+
+        private void HandleRespawn()
+        {
+            deathActive = false;
+            verticalVelocity = 0f;
+            transform.rotation = Quaternion.identity;
+        }
+
+        private void UpdateDeathSpin()
+        {
+            transform.Rotate(0f, deathSpinSpeed * Time.deltaTime, 0f, Space.World);
+        }
+
+        private void DeathFallStep(float deltaTime)
+        {
+            verticalVelocity -= gravity * deltaTime;
+            Vector2 position = body.position;
+            position.y += verticalVelocity * deltaTime;
+            body.MovePosition(position);
         }
 
         private IEnumerator HitFlashRoutine()

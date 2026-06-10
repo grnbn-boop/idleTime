@@ -52,6 +52,12 @@ namespace IdleTime.Player
 
         private void Update()
         {
+            if (PlayerManager.Instance != null && PlayerManager.Instance.IsDead)
+            {
+                ClearTarget();   // drop the fight while downed
+                return;
+            }
+
             ReadClickForTarget();
             UpdateAttackLoop();
         }

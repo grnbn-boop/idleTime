@@ -46,6 +46,9 @@ public class SkillManager : MonoBehaviour
         character.skills.TryUnlock(node.skill);
         RecomputeSkillBonuses(character);
         OnSkillsChanged?.Invoke();
+        // Mirror EquipmentManager: a skill can change Attack/Defense/MaxHP, so the
+        // stats panel (and anything else on OnStatsChanged) refreshes immediately.
+        PlayerManager.Instance?.NotifyStatsChanged();
         return true;
     }
 

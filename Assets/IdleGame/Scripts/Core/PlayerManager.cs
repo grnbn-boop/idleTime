@@ -14,6 +14,10 @@ namespace IdleTime.Core
         public event Action OnActiveCharacterChanged;
         public event Action OnStatsChanged;
         public event Action OnLevelUp;
+        public event Action OnPlayerDeath;
+        public event Action OnPlayerRespawn;
+
+        public bool IsDead { get; private set; }
 
         public CharacterData ActiveCharacter => characters.Count > 0 ? characters[activeIndex] : null;
         public IReadOnlyList<CharacterData> Characters => characters;
@@ -85,6 +89,7 @@ namespace IdleTime.Core
             if (ActiveCharacter == null) return;
             ActiveCharacter.currentHP = Mathf.Clamp(ActiveCharacter.currentHP + delta, 0, ActiveCharacter.MaxHP);
             OnStatsChanged?.Invoke();
+            CheckForDeath();
         }
 
         public void ModifyMP(float delta)
@@ -99,6 +104,7 @@ namespace IdleTime.Core
             if (ActiveCharacter == null) return;
             ActiveCharacter.currentHP = Mathf.Clamp(value, 0, ActiveCharacter.MaxHP);
             OnStatsChanged?.Invoke();
+            CheckForDeath();
         }
 
         public void SetMP(float value)
@@ -125,6 +131,33 @@ namespace IdleTime.Core
             }
 
             if (leveledUp) OnLevelUp?.Invoke();
+            OnStatsChanged?.Invoke();
+        }
+
+        // ── Death & respawn ─────────────────────────────────────────────────────
+        // PlayerManager only owns the *state* (IsDead) and the events. The timed
+        // cinematic — death animation, fade, level reset — is driven by
+        // DeathSequenceController, which calls Respawn() when it's ready.
+
+        void CheckForDeath()
+        {
+            if (IsDead || ActiveCharacter == null) return;
+            if (ActiveCharacter.currentHP > 0f) return;
+
+            IsDead = true;
+            OnPlayerDeath?.Invoke();
+        }
+
+        // Restores the active character to full vitals and lifts the dead state.
+        // Called by DeathSequenceController after the level has been reset; also
+        // safe to call directly for a checkpoint/town-heal.
+        public void Respawn()
+        {
+            if (!IsDead) return;
+            IsDead = false;
+
+            ActiveCharacter?.ResetVitals();
+            OnPlayerRespawn?.Invoke();
             OnStatsChanged?.Invoke();
         }
     }
