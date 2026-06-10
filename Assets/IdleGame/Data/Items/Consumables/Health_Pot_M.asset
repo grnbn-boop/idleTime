@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c15cfb5a83e67c7419d37f710e04abfe, type: 3}
-  m_Name: What
+  m_Name: Health_Pot_M
   m_EditorClassIdentifier: Assembly-CSharp::IdleTime.Core.ItemDefinition
-  itemName: What?
-  icon: {fileID: 729662870, guid: 93bc6499c8976ae42b04960c9d4426d6, type: 3}
-  itemType: 0
-  description: ???
+  itemName: Health Potion M
+  icon: {fileID: 807875314, guid: 93bc6499c8976ae42b04960c9d4426d6, type: 3}
+  itemType: 3
+  description: Small health potion, heals 50% max HP.
   equipSlot: 0
   bonusAttack: 0
   bonusDefense: 0

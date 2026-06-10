@@ -88,5 +88,9 @@ public class SkillManager : MonoBehaviour
                 }
             }
         }
+
+        // Skill changes can't currently lower a max, but keep vitals in range so a
+        // future debuff/respec path can't strand currentHP above MaxHP.
+        character.ClampVitals();
     }
 }

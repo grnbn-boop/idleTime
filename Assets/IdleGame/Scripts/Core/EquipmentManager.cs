@@ -87,6 +87,10 @@ namespace IdleTime.Core
                 if (item is ArmorDefinition armor)
                     character.equipBonusMaxHP += armor.bonusMaxHP;
             }
+
+            // MaxHP may have just dropped (unequipped a +MaxHP item) — keep
+            // currentHP from sitting above the new ceiling.
+            character.ClampVitals();
         }
     }
 }

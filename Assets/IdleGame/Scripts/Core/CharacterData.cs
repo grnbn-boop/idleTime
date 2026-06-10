@@ -61,12 +61,28 @@ namespace IdleTime.Core
         public int Accuracy => GetBaseStat(playerClass?.accuracyStat ?? PrimaryStat.Dex) + equipBonusAccuracy + skillBonusAccuracy;
         public int Defense  => equipBonusDefense + skillBonusDefense;
 
-        public void Initialize()
+        public void EnsureBaseClassUnlocked()
         {
             if (unlockedClasses.Count == 0 && playerClass != null)
                 unlockedClasses.Add(playerClass);
+        }
+
+        // Call only after the skill/equip bonus caches have been recomputed —
+        // MaxHP/MaxMP read those caches, so filling vitals earlier bakes in
+        // un-bonused maxima.
+        public void ResetVitals()
+        {
             currentHP = MaxHP;
             currentMP = MaxMP;
+        }
+
+        // Pull live vitals back into [0, max]. Call after anything that can lower
+        // MaxHP/MaxMP (e.g. unequipping a +MaxHP item) so currentHP can't linger
+        // above the new max.
+        public void ClampVitals()
+        {
+            currentHP = Mathf.Clamp(currentHP, 0, MaxHP);
+            currentMP = Mathf.Clamp(currentMP, 0, MaxMP);
         }
 
         private int GetBaseStat(PrimaryStat stat) => stat switch

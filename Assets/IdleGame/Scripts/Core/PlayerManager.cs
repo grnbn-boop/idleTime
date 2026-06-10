@@ -17,6 +17,7 @@ namespace IdleTime.Core
 
         public CharacterData ActiveCharacter => characters.Count > 0 ? characters[activeIndex] : null;
         public IReadOnlyList<CharacterData> Characters => characters;
+        public int ActiveIndex => activeIndex;
 
         void Awake()
         {
@@ -31,8 +32,23 @@ namespace IdleTime.Core
 
         void Start()
         {
+            // Apply save files (if any) onto the Inspector-authored characters first,
+            // so the recompute below derives stats from the loaded gear/skills.
+            var save = SaveManager.Instance;
+            if (save != null)
+            {
+                int savedIndex = save.LoadMasterActiveIndex();
+                if (savedIndex >= 0 && savedIndex < characters.Count)
+                    activeIndex = savedIndex;
+                save.LoadCharacters(characters, activeIndex);
+            }
+
             foreach (var c in characters)
-                c.Initialize();
+            {
+                c.EnsureBaseClassUnlocked();   // skill trees are gated on unlockedClasses
+                RecomputeAllBonuses(c);
+                c.ResetVitals();               // fill HP/MP from the now-correct maxima
+            }
 
             OnActiveCharacterChanged?.Invoke();
         }
@@ -42,8 +58,26 @@ namespace IdleTime.Core
         public void SwitchCharacter(int index)
         {
             if (index < 0 || index >= characters.Count) return;
+
+            // The shared Inventory holds the outgoing character's items — persist
+            // them to that character's file, then pull the incoming character's
+            // inventory from theirs.
+            SaveManager.Instance?.SaveCharacter(ActiveCharacter, includeLiveInventory: true);
             activeIndex = index;
+            SaveManager.Instance?.LoadInventoryFor(ActiveCharacter);
+
+            RecomputeAllBonuses(ActiveCharacter);
             OnActiveCharacterChanged?.Invoke();
+        }
+
+        // skillBonus*/equipBonus* are [NonSerialized] caches, and gear/skill levels
+        // can be authored in the Inspector (or later loaded from a save) without ever
+        // passing through Equip/TryUnlock — so the caches must be rebuilt here before
+        // anything reads a derived stat.
+        private void RecomputeAllBonuses(CharacterData c)
+        {
+            EquipmentManager.Instance?.RecomputeBonuses(c);
+            SkillManager.Instance?.RecomputeSkillBonuses(c);
         }
 
         public void ModifyHP(float delta)
