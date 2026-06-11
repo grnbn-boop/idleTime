@@ -88,6 +88,7 @@ namespace IdleTime.Core
                 classId = c.playerClass != null ? c.playerClass.name : "",
                 level = c.level,
                 currentXP = c.currentXP,
+                gold = c.gold,
                 skills = c.skills,
                 // Stub: no activity system yet, so every save records "Idle, as of now".
                 currentActivity = "Idle",
@@ -173,6 +174,7 @@ namespace IdleTime.Core
         {
             c.level = Mathf.Max(1, data.level);
             c.currentXP = data.currentXP;
+            c.gold = Mathf.Max(0, data.gold);
             if (data.skills != null) c.skills = data.skills;
             // currentActivity/activityStartedUtcTicks: nothing consumes these yet —
             // the AFK-gains pass will apply offline progress here on load.
@@ -249,6 +251,7 @@ namespace IdleTime.Core
 
             data.level = 1;
             data.currentXP = 0;
+            data.gold = 0;
             data.skills = new SkillRegistry();        // back to starting points, nothing learned
             data.unlockedClassIds = new List<string>(); // base class is re-added on load via EnsureBaseClassUnlocked
             data.equipment = new List<EquipmentSaveEntry>();

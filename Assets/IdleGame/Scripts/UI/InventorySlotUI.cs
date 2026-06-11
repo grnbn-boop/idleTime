@@ -100,6 +100,15 @@ namespace IdleTime.UI
 
         public void OnPointerClick(PointerEventData eventData)
         {
+            // Right-click discards the whole stack to free the slot.
+            if (eventData.button == PointerEventData.InputButton.Right)
+            {
+                Discard();
+                return;
+            }
+
+            if (eventData.button != PointerEventData.InputButton.Left) return;
+
             float now = Time.unscaledTime;
             if (now - _lastClickTime <= DoubleClickThreshold)
             {
@@ -110,6 +119,18 @@ namespace IdleTime.UI
             {
                 _lastClickTime = now;
             }
+        }
+
+        // Drops the slot's stack entirely. Tooltip is hovering this slot, so dismiss it.
+        void Discard()
+        {
+            if (_slotIndex < 0) return;
+            var slot = Inventory.Instance?.GetSlot(_slotIndex);
+            if (slot == null || slot.IsEmpty) return;
+
+            Debug.Log($"[Inventory] Discarding '{slot.item.itemName}' ×{slot.count} from slot {_slotIndex}");
+            Inventory.Instance.RemoveAt(_slotIndex);
+            TooltipManager.Instance?.Hide();
         }
 
         // ── Hover tooltip ─────────────────────────────────────────────────────

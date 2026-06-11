@@ -19,6 +19,8 @@ MonoBehaviour:
   maxAccuracy: 13
   defenseToNegate: 20
   xpReward: 10
+  goldRewardMin: 20
+  goldRewardMax: 150
   respawnTime: 30
   lootTable:
   - item: {fileID: 11400000, guid: 709450e3713aa124bbb12e718d5a52ea, type: 2}

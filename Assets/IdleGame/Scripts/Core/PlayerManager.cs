@@ -16,6 +16,7 @@ namespace IdleTime.Core
         public event Action OnLevelUp;
         public event Action OnPlayerDeath;
         public event Action OnPlayerRespawn;
+        public event Action OnGoldChanged;
 
         public bool IsDead { get; private set; }
 
@@ -121,6 +122,32 @@ namespace IdleTime.Core
             if (ActiveCharacter == null) return;
             ActiveCharacter.currentMP = Mathf.Clamp(ActiveCharacter.currentMP + delta, 0, ActiveCharacter.MaxMP);
             OnStatsChanged?.Invoke();
+        }
+
+        // ── Gold ────────────────────────────────────────────────────────────────
+        // Per-character soft currency. Reads/writes ActiveCharacter.gold and fires
+        // OnGoldChanged so the HUD can refresh without polling.
+
+        public int Gold => ActiveCharacter?.gold ?? 0;
+
+        public void AddGold(int amount)
+        {
+            var c = ActiveCharacter;
+            if (c == null || amount == 0) return;
+            // Clamp at 0 so a negative add can't push the total below empty.
+            c.gold = Mathf.Max(0, c.gold + amount);
+            OnGoldChanged?.Invoke();
+        }
+
+        public bool CanAffordGold(int amount) => ActiveCharacter != null && ActiveCharacter.gold >= amount;
+
+        // Spends nothing and returns false if the active character can't pay, so callers
+        // can gate a purchase on it: `if (PlayerManager.Instance.TrySpendGold(price)) { buy... }`.
+        public bool TrySpendGold(int amount)
+        {
+            if (amount < 0 || !CanAffordGold(amount)) return false;
+            AddGold(-amount);
+            return true;
         }
 
         public bool CanAffordMP(float amount) => ActiveCharacter != null && ActiveCharacter.currentMP >= amount;

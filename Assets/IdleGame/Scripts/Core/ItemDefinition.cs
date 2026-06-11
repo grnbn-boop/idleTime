@@ -14,6 +14,13 @@ namespace IdleTime.Core
         public ItemType itemType = ItemType.Misc;
         [TextArea] public string description;
 
+        [Header("Currency — used when this item is a coin")]
+        [Tooltip("Gold this coin is worth. > 0 makes the item soft currency: picking it up " +
+                 "adds to the player's gold instead of taking an inventory slot.")]
+        public int currencyValue;
+
+        public bool IsCurrency => currencyValue > 0;
+
         // Equipment — only used when equipSlot != None
         public EquipSlot equipSlot = EquipSlot.None;
 

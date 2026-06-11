@@ -16,6 +16,7 @@ namespace IdleTime.Combat
         public event Action<MonsterController> OnDeath;
         public event Action<MonsterController> OnRespawn;
         public event Action<List<(ItemDefinition item, int quantity)>> OnLootRolled;
+        public event Action<int> OnGoldRolled;
         public event Action OnAttack;
 
         [Header("Animation")]
@@ -82,6 +83,10 @@ namespace IdleTime.Combat
 
             List<(ItemDefinition, int)> drops = RollLoot();
             OnLootRolled?.Invoke(drops);
+
+            int gold = RollGold();
+            if (gold > 0) OnGoldRolled?.Invoke(gold);
+
             OnDeath?.Invoke(this);
 
             StartCoroutine(DeathAndRespawnRoutine());
@@ -121,6 +126,16 @@ namespace IdleTime.Combat
 
             Debug.Log($"[Loot] {data.monsterName}: {drops.Count} item(s) dropped");
             return drops;
+        }
+
+        // Inclusive roll between the monster's gold min/max. Returns 0 when the monster
+        // has no gold reward configured, so callers can skip spawning a coin.
+        private int RollGold()
+        {
+            int min = Mathf.Max(0, data.goldRewardMin);
+            int max = Mathf.Max(min, data.goldRewardMax);
+            if (max <= 0) return 0;
+            return UnityEngine.Random.Range(min, max + 1);
         }
 
         private IEnumerator DeathAndRespawnRoutine()

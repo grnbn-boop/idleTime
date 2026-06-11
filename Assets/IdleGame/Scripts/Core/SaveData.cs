@@ -30,6 +30,7 @@ namespace IdleTime.Core
         public string classId;
         public int level = 1;
         public float currentXP;
+        public int gold;
 
         // Activity stub — no activity system exists yet. When AFK gains land,
         // these record what the character was doing and since when, so offline

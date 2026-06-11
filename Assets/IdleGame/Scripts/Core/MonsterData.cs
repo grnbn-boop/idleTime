@@ -28,6 +28,11 @@ namespace IdleTime.Core
         [Header("Rewards")]
         public int xpReward = 10;
 
+        [Tooltip("Gold dropped on death, rolled inclusively between min and max. " +
+                 "Leave both at 0 for a monster that drops no gold.")]
+        public int goldRewardMin = 0;
+        public int goldRewardMax = 0;
+
         [Header("Respawn")]
         public float respawnTime = 30f;
 

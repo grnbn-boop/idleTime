@@ -139,5 +139,6 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9942d8daa7b2b2443908519bd1ca7dcd, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::IdleTime.Core.WorldItem
+  _currencyDatabase: {fileID: 11400000, guid: 3e04c0f072d78db429959da566ec0654, type: 2}

@@ -9,18 +9,19 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1e24ac7e50a59f14d81a703e644f7197, type: 3}
-  m_Name: Sword_1
-  m_EditorClassIdentifier: Assembly-CSharp::IdleTime.Core.WeaponDefinition
-  itemName: Wooden Sword
-  icon: {fileID: 1713986021, guid: 93bc6499c8976ae42b04960c9d4426d6, type: 3}
-  itemType: 1
-  description: All good adventures start with one.
-  equipSlot: 4
+  m_Script: {fileID: 11500000, guid: c15cfb5a83e67c7419d37f710e04abfe, type: 3}
+  m_Name: Silver_Coin
+  m_EditorClassIdentifier: Assembly-CSharp::IdleTime.Core.ItemDefinition
+  itemName: Silver Coin
+  icon: {fileID: -1411590597, guid: 93bc6499c8976ae42b04960c9d4426d6, type: 3}
+  itemType: 0
+  description: ???
+  currencyValue: 100
+  equipSlot: 0
   allowedClasses: []
   bonusAttack: 0
   bonusDefense: 0
-  bonusAccuracy: 2
+  bonusAccuracy: 0
   bonusStr: 0
   bonusDex: 0
   bonusWis: 0
@@ -29,5 +30,3 @@ MonoBehaviour:
   restoreMP: 0
   restoreHPPercent: 0
   restoreMPPercent: 0
-  weaponType: 0
-  baseWeaponPower: 5

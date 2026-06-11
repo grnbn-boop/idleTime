@@ -15,6 +15,10 @@ namespace IdleTime.Core
         public float currentMP;
         public float currentXP;
 
+        // Soft currency. The single source of truth for "how much gold the player has";
+        // coin pickups (see ItemDefinition.currencyValue) just add to this number.
+        public int gold;
+
         public float XPToNextLevel => 100f * level;
 
         // All class trees this character has access to (starts with their base class).

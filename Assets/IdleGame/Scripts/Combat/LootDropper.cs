@@ -18,7 +18,9 @@ namespace IdleTime.Combat
 
         void Awake()
         {
-            GetComponent<MonsterController>().OnLootRolled += SpawnDrops;
+            var monster = GetComponent<MonsterController>();
+            monster.OnLootRolled += SpawnDrops;
+            monster.OnGoldRolled += SpawnGold;
         }
 
         void SpawnDrops(List<(ItemDefinition item, int quantity)> drops)
@@ -59,6 +61,26 @@ namespace IdleTime.Combat
                 drop.Launch(vel);
                 Debug.Log($"[LootDropper] {name}: launching {allItems[i].itemName} at {angleDeg:F1}°");
             }
+        }
+
+        // One coin carries the whole rolled amount, launched roughly straight up.
+        void SpawnGold(int amount)
+        {
+            if (amount <= 0) return;
+            if (worldItemPrefab == null)
+            {
+                Debug.LogError($"[LootDropper] {name}: worldItemPrefab is not assigned — cannot spawn gold drop.");
+                return;
+            }
+
+            float angleDeg = 90f + Random.Range(-8f, 8f);
+            float rad = angleDeg * Mathf.Deg2Rad;
+            Vector2 vel = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)) * launchSpeed;
+
+            WorldItem drop = Instantiate(worldItemPrefab, transform.position, Quaternion.identity);
+            drop.SetGold(amount);
+            drop.Launch(vel);
+            Debug.Log($"[LootDropper] {name}: launching {amount} gold");
         }
     }
 }
