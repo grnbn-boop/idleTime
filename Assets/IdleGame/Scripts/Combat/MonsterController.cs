@@ -15,6 +15,11 @@ namespace IdleTime.Combat
 
         public event Action<MonsterController> OnDeath;
         public event Action<MonsterController> OnRespawn;
+
+        // Global "a monster just died" signal. Lets room/portal progress count kills
+        // without subscribing to every spawned monster individually (mirrors the
+        // SkillManager.OnSkillsChanged static-event pattern).
+        public static event Action<MonsterController> OnAnyDeath;
         public event Action<List<(ItemDefinition item, int quantity)>> OnLootRolled;
         public event Action<int> OnGoldRolled;
         public event Action OnAttack;
@@ -88,6 +93,7 @@ namespace IdleTime.Combat
             if (gold > 0) OnGoldRolled?.Invoke(gold);
 
             OnDeath?.Invoke(this);
+            OnAnyDeath?.Invoke(this);
 
             StartCoroutine(DeathAndRespawnRoutine());
         }
