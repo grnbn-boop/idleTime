@@ -20,11 +20,23 @@ namespace IdleTime.UI
 
         public void Init(int slotIndex) => _slotIndex = slotIndex;
 
+        // The count label's rect (TMP default 200×50) is far larger than the ~31px cell.
+        // It must never catch raycasts: when a stack enables it, it would steal
+        // drags/drops aimed at neighbouring slots. The icon is the slot's hit area.
+        void Awake()
+        {
+            if (countLabel != null) countLabel.raycastTarget = false;
+        }
+
         public void Refresh(InventorySlot slot)
         {
             if (slot == null)  { Debug.LogError($"[InventorySlotUI] slot is null on {gameObject.name}");  return; }
             if (iconImage == null) { Debug.LogError($"[InventorySlotUI] iconImage not wired on {gameObject.name}"); return; }
             if (countLabel == null) { Debug.LogError($"[InventorySlotUI] countLabel not wired on {gameObject.name}"); return; }
+
+            // A disabled Image silently draws nothing even with a sprite assigned —
+            // re-enable so a stray scene tick can't blank the slot.
+            iconImage.enabled = true;
 
             if (!slot.IsEmpty)
             {
@@ -59,6 +71,13 @@ namespace IdleTime.UI
                 return;
             }
             Debug.Log($"[Drag] Starting drag for '{slot.item.itemName}' (equipSlot={slot.item.equipSlot}), ItemDragManager={ItemDragManager.Instance != null}");
+            // If the icon currently shown in this slot doesn't match the item we're about to
+            // grab, the slot's visual is stale (Refresh didn't repaint after the last swap) —
+            // the user sees one item but grabs another.
+            string shownIcon = iconImage != null ? (iconImage.sprite != null ? iconImage.sprite.name : "none") : "no-image";
+            string dataIcon  = slot.item.icon != null ? slot.item.icon.name : "none";
+            if (shownIcon != dataIcon)
+                Debug.LogWarning($"[Drag] STALE ICON on slot {_slotIndex}: showing '{shownIcon}' but data is '{slot.item.itemName}' (icon '{dataIcon}'). Slot visual didn't refresh.");
             ItemDragManager.Instance?.BeginDrag(slot.item, _slotIndex);
         }
 
@@ -154,6 +173,20 @@ namespace IdleTime.UI
 
         public void OnPointerExit(PointerEventData eventData) => TooltipManager.Instance?.Hide();
 
+        // Debug: logs this slot's live visual state next to its data, to diagnose icons
+        // that won't draw even though the sprite is assigned (alpha 0, disabled, empty
+        // sprite region, zero rect, etc.). Driven by DebugCommands.
+        public void DebugDumpVisual()
+        {
+            var slot = Inventory.Instance?.GetSlot(_slotIndex);
+            string data = (slot != null && !slot.IsEmpty) ? slot.item.itemName : "<empty>";
+            if (iconImage == null) { Debug.Log($"[DumpInv] slot {_slotIndex} '{data}': iconImage is NULL"); return; }
+            var sp = iconImage.sprite;
+            Debug.Log($"[DumpInv] slot {_slotIndex} data='{data}' | enabled={iconImage.enabled} active={iconImage.gameObject.activeInHierarchy} " +
+                      $"alpha={iconImage.color.a:0.##} sprite={(sp != null ? sp.name : "NULL")} spriteRect={(sp != null ? sp.rect.size.ToString() : "-")} " +
+                      $"rect={((RectTransform)iconImage.transform).rect.size} lossyScale={iconImage.transform.lossyScale}");
+        }
+
         void OnDisable() => TooltipManager.Instance?.Hide();
 
         // Double-click dispatch: consumables get used, gear gets equipped.
@@ -169,11 +202,18 @@ namespace IdleTime.UI
         {
             if (_slotIndex < 0) return;
             var slot = Inventory.Instance?.GetSlot(_slotIndex);
-            if (slot == null || slot.IsEmpty || slot.item.equipSlot == EquipSlot.None) return;
+            if (slot == null || slot.IsEmpty || slot.item.equipSlot == EquipSlot.None)
+            {
+                Debug.Log($"[Equip] Double-click on slot {_slotIndex} did nothing — empty or not equippable (equipSlot={(slot != null && !slot.IsEmpty ? slot.item.equipSlot.ToString() : "n/a")}).");
+                return;
+            }
+
+            Debug.Log($"[Equip] Double-click equip attempt: '{slot.item.itemName}' (equipSlot={slot.item.equipSlot}) from slot {_slotIndex}.");
 
             var character = PlayerManager.Instance?.ActiveCharacter;
-            if (character == null) return;
-            if (EquipmentManager.Instance == null || !EquipmentManager.Instance.CanEquip(slot.item, character)) return;
+            if (character == null) { Debug.Log("[Equip] Aborted — no active character."); return; }
+            if (EquipmentManager.Instance == null) { Debug.Log("[Equip] Aborted — no EquipmentManager in scene."); return; }
+            if (!EquipmentManager.Instance.CanEquip(slot.item, character)) return; // CanEquip logs the reason
 
             var item = slot.item;
             Inventory.Instance.RemoveAt(_slotIndex);

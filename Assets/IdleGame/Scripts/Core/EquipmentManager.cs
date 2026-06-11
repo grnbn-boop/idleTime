@@ -19,9 +19,22 @@ namespace IdleTime.Core
         // True if this character's current class may equip the item into its slot.
         public bool CanEquip(ItemDefinition item, CharacterData character)
         {
-            if (item == null || character == null) return false;
-            if (item.equipSlot == EquipSlot.None) return false;
-            return item.AllowsClass(character.playerClass);
+            if (item == null || character == null)
+            {
+                Debug.Log($"[Equip] CanEquip=false — item={(item != null ? item.itemName : "null")}, character={(character != null ? character.characterName : "null")}.");
+                return false;
+            }
+            if (item.equipSlot == EquipSlot.None)
+            {
+                Debug.Log($"[Equip] CanEquip=false — '{item.itemName}' has equipSlot=None (not equippable).");
+                return false;
+            }
+            if (!item.AllowsClass(character.playerClass))
+            {
+                Debug.Log($"[Equip] CanEquip=false — '{item.itemName}' is class-restricted and {character.ClassName} is not in its allowed list.");
+                return false;
+            }
+            return true;
         }
 
         // Equips the item, swapping any currently-worn item in that slot back to
@@ -33,7 +46,11 @@ namespace IdleTime.Core
 
             var displaced = character.equipment.Get(item.equipSlot);
             if (displaced != null && (Inventory.Instance == null || Inventory.Instance.IsFull))
-                return false;   // nowhere to put the old item — abort rather than destroy it
+            {
+                // nowhere to put the old item — abort rather than destroy it
+                Debug.Log($"[Equip] Can't equip '{item.itemName}' — slot {item.equipSlot} already holds '{displaced.itemName}' and the inventory is full, so there's nowhere to return it.");
+                return false;
+            }
 
             character.equipment.Set(item.equipSlot, item);
             if (displaced != null) Inventory.Instance.AddItem(displaced);
@@ -83,6 +100,36 @@ namespace IdleTime.Core
             OnEquipmentChanged?.Invoke();
             PlayerManager.Instance?.NotifyStatsChanged();
             return true;
+        }
+
+        // Debug: slams an item straight into its slot, discarding whatever is there —
+        // no inventory round-trip, no class check, no full-inventory abort. For testing
+        // that equip + UI rendering work from a known state.
+        public void ForceEquip(ItemDefinition item, CharacterData character)
+        {
+            if (item == null || character == null || item.equipSlot == EquipSlot.None)
+            {
+                Debug.LogWarning($"[Equip] ForceEquip skipped — item='{(item != null ? item.itemName : "null")}', slot={(item != null ? item.equipSlot.ToString() : "n/a")}.");
+                return;
+            }
+            character.equipment.Set(item.equipSlot, item);
+            RecomputeBonuses(character);
+            OnEquipmentChanged?.Invoke();
+            PlayerManager.Instance?.NotifyStatsChanged();
+            Debug.Log($"[Equip] Force-equipped '{item.itemName}' into {item.equipSlot} on '{character.characterName}'.");
+        }
+
+        // Strips every equipment slot without returning items to inventory. Debug/
+        // maintenance hook for building a clean slate; pairs with Inventory.Clear().
+        public void ClearAll(CharacterData character)
+        {
+            if (character == null) return;
+            foreach (EquipSlot slot in Enum.GetValues(typeof(EquipSlot)))
+                if (slot != EquipSlot.None) character.equipment.Set(slot, null);
+            RecomputeBonuses(character);
+            OnEquipmentChanged?.Invoke();
+            PlayerManager.Instance?.NotifyStatsChanged();
+            Debug.Log($"[Equipment] Cleared all slots for '{character.characterName}'.");
         }
 
         public void RecomputeBonuses(CharacterData character)

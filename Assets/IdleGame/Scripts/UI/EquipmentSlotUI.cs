@@ -21,11 +21,18 @@ namespace IdleTime.UI
         void Awake()
         {
             Debug.Log($"[EquipmentSlotUI] {gameObject.name} configured as slot={slot}");
+            // Labels must never catch raycasts — an oversized label rect steals
+            // drags/drops aimed at neighbouring slots. The icon is the hit area.
+            if (slotLabel != null) slotLabel.raycastTarget = false;
         }
 
         public void Refresh(ItemDefinition item)
         {
             if (iconImage == null) return;
+            // A disabled Image silently draws nothing even with a sprite assigned —
+            // re-enable so a stray scene tick can't blank the slot (this is exactly
+            // how the helmet slot went invisible).
+            iconImage.enabled = true;
             if (item != null)
             {
                 iconImage.sprite = item.icon;
@@ -122,6 +129,19 @@ namespace IdleTime.UI
         }
 
         public void OnPointerExit(PointerEventData eventData) => TooltipManager.Instance?.Hide();
+
+        // Debug: logs this equip slot's live visual state next to its data, to diagnose
+        // icons that won't draw even though the sprite is assigned. Driven by DebugCommands.
+        public void DebugDumpVisual()
+        {
+            var item = PlayerManager.Instance?.ActiveCharacter?.equipment.Get(slot);
+            string data = item != null ? item.itemName : "<empty>";
+            if (iconImage == null) { Debug.Log($"[DumpEq] {slot} '{data}': iconImage is NULL"); return; }
+            var sp = iconImage.sprite;
+            Debug.Log($"[DumpEq] {slot} data='{data}' | enabled={iconImage.enabled} active={iconImage.gameObject.activeInHierarchy} " +
+                      $"alpha={iconImage.color.a:0.##} sprite={(sp != null ? sp.name : "NULL")} spriteRect={(sp != null ? sp.rect.size.ToString() : "-")} " +
+                      $"rect={((RectTransform)iconImage.transform).rect.size} lossyScale={iconImage.transform.lossyScale}");
+        }
 
         void OnDisable() => TooltipManager.Instance?.Hide();
 

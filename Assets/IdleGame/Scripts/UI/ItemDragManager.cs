@@ -24,6 +24,7 @@ namespace IdleTime.UI
 
         public void BeginDragFromEquipment(ItemDefinition item, EquipSlot sourceSlot)
         {
+            WarnIfDragInProgress();
             DraggedItem     = item;
             SourceSlotIndex = -1;
             SourceEquipSlot = sourceSlot;
@@ -32,6 +33,7 @@ namespace IdleTime.UI
 
         public void BeginDrag(ItemDefinition item, int inventorySlotIndex)
         {
+            WarnIfDragInProgress();
             DraggedItem     = item;
             SourceSlotIndex = inventorySlotIndex;
             SourceEquipSlot = EquipSlot.None;
@@ -39,9 +41,30 @@ namespace IdleTime.UI
             CreateGhost(item);
         }
 
+        // A new drag should only ever start from a clean slate. If state is still set,
+        // the previous drag's OnEndDrag never ran (e.g. its slot was deactivated mid-drag),
+        // which is exactly how a stale ghost gets stranded on the canvas.
+        void WarnIfDragInProgress()
+        {
+            if (DraggedItem != null || _ghost != null)
+                Debug.LogWarning($"[ItemDragManager] New drag starting while previous one is unresolved " +
+                                 $"(DraggedItem='{(DraggedItem != null ? DraggedItem.itemName : "null")}', ghostAlive={_ghost != null}). " +
+                                 $"Previous OnEndDrag was skipped — cleaning up.");
+        }
+
         void CreateGhost(ItemDefinition item)
         {
             if (rootCanvas == null) { Debug.LogError("[ItemDragManager] rootCanvas is not assigned!"); return; }
+
+            // Defensive: never leak a previous ghost. Without this, a skipped OnEndDrag
+            // leaves the old ghost alive and a fresh one is layered on top of it.
+            if (_ghost != null)
+            {
+                Debug.LogWarning($"[ItemDragManager] Destroying leaked ghost '{_ghost.sprite?.name}' before creating '{item.itemName}'.");
+                Destroy(_ghost.gameObject);
+                _ghost = null;
+            }
+
             _ghost = new GameObject("DragGhost", typeof(Image)).GetComponent<Image>();
             _ghost.transform.SetParent(rootCanvas.transform, false);
             _ghost.transform.SetAsLastSibling();
@@ -64,6 +87,7 @@ namespace IdleTime.UI
 
         public void EndDrag()
         {
+            Debug.Log($"[ItemDragManager] EndDrag — clearing '{(DraggedItem != null ? DraggedItem.itemName : "null")}', ghostAlive={_ghost != null}");
             DraggedItem     = null;
             SourceSlotIndex = -1;
             SourceEquipSlot = EquipSlot.None;

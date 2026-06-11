@@ -29,7 +29,8 @@ namespace IdleTime.UI
 
         void Refresh()
         {
-            if (Inventory.Instance == null) return;
+            if (Inventory.Instance == null) { Debug.LogWarning("[InventoryUI] Refresh skipped — Inventory.Instance is null"); return; }
+            Debug.Log($"[InventoryUI] Refresh — repainting {slots.Length} slots");
             for (int i = 0; i < slots.Length; i++)
                 slots[i].Refresh(Inventory.Instance.GetSlot(i));
         }

@@ -93,6 +93,19 @@ namespace IdleTime.Core
 
         public InventorySlot GetSlot(int index) => _slots[index];
 
+        // Empties every slot in one shot. Debug/maintenance hook — used to flush a
+        // persisted bad state and start from a known-clean inventory.
+        public void Clear()
+        {
+            for (int i = 0; i < MaxSlots; i++)
+            {
+                _slots[i].item  = null;
+                _slots[i].count = 0;
+            }
+            OnInventoryChanged?.Invoke();
+            Debug.Log("[Inventory] Cleared all slots.");
+        }
+
         // Places item directly into a specific slot (overwrites). Used by equipment drag.
         public void SetSlot(int index, ItemDefinition item, int count = 1)
         {
