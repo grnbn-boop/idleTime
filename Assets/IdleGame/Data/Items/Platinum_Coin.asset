@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Platinum_Coin
   m_EditorClassIdentifier: Assembly-CSharp::IdleTime.Core.ItemDefinition
   itemName: Platinum Coin
-  icon: {fileID: 1752257952, guid: 93bc6499c8976ae42b04960c9d4426d6, type: 3}
+  icon: {fileID: 693174032, guid: 93bc6499c8976ae42b04960c9d4426d6, type: 3}
   itemType: 0
   description: ???
   currencyValue: 1000
