@@ -67,6 +67,7 @@ namespace IdleTime.UI
             SkillEffectType.BonusBossDamage => "Boss Damage",
             SkillEffectType.BonusMpRegen    => "MP Regen",
             SkillEffectType.BonusDamage     => "Damage",
+            SkillEffectType.BonusWeaponPower => "Weapon Power",
             _                               => null,
         };
 

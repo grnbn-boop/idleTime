@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 502096791e5e13e42bfcb432c312302a, type: 3}
-  m_Name: BasicAttack
+  m_Name: MPUp
   m_EditorClassIdentifier: Assembly-CSharp::IdleTime.Core.SkillDefinition
-  skillName: Basic Attack
-  description: Your good ole basic attack.
-  icon: {fileID: 253636668, guid: 93bc6499c8976ae42b04960c9d4426d6, type: 3}
+  skillName: Magic Up
+  description: Increase yo health.
+  icon: {fileID: -130116182, guid: 93bc6499c8976ae42b04960c9d4426d6, type: 3}
   maxLevel: 50
-  effectType: 18
-  effectValuePerLevel: 1
+  effectType: 4
+  effectValuePerLevel: 2
   isPercentage: 0

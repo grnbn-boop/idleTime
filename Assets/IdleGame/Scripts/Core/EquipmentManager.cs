@@ -111,6 +111,9 @@ namespace IdleTime.Core
             character.equipBonusBossDamage     = 0f;
             character.equipBonusMpRegen        = 0f;
             character.equipBonusDamage         = 0f;
+            character.equipWeaponPower            = 0;
+            character.equipBonusWeaponPower       = 0;
+            character.equipBonusWeaponPowerPercent = 0f;
 
             foreach (EquipSlot slot in Enum.GetValues(typeof(EquipSlot)))
             {
@@ -125,6 +128,8 @@ namespace IdleTime.Core
                 character.equipBonusLuk      += item.bonusLuk;
                 if (item is ArmorDefinition armor)
                     character.equipBonusMaxHP += armor.bonusMaxHP;
+                if (item is WeaponDefinition weapon)
+                    character.equipWeaponPower += weapon.baseWeaponPower;
             }
 
             // MaxHP may have just dropped (unequipped a +MaxHP item) — keep

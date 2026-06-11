@@ -28,6 +28,9 @@ namespace IdleTime.UI
                 sb.Append($"\n<size=80%><color=#{(canWear ? "9AA0A6" : "E06666")}>{ClassList(item)}</color></size>");
             }
 
+            if (item is WeaponDefinition wpn && wpn.baseWeaponPower != 0)
+                sb.Append($"\n<color=#E8B923>{wpn.baseWeaponPower} Weapon Power</color>");
+
             AppendStat(sb, "Attack", item.bonusAttack);
             AppendStat(sb, "Defense", item.bonusDefense);
             AppendStat(sb, "Accuracy", item.bonusAccuracy);

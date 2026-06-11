@@ -30,6 +30,8 @@ public class PlayerStatsUI : MonoBehaviour
     [SerializeField] TextMeshProUGUI attackText;
     [SerializeField] TextMeshProUGUI accuracyText;
     [SerializeField] TextMeshProUGUI defenseText;
+    [Tooltip("Optional — leave unset until a Weapon Power label exists in the stats panel.")]
+    [SerializeField] TextMeshProUGUI weaponPowerText;
 
     void Start()
     {
@@ -70,6 +72,7 @@ public class PlayerStatsUI : MonoBehaviour
         if (attackText != null)   attackText.text   = c.Attack.ToString();
         if (accuracyText != null) accuracyText.text = c.Accuracy.ToString();
         if (defenseText != null)  defenseText.text  = c.Defense.ToString();
+        if (weaponPowerText != null) weaponPowerText.text = c.WeaponPower.ToString();
     }
 
     // ── Hover tooltips (base/skill/gear breakdown) ───────────────────────────────
@@ -84,6 +87,23 @@ public class PlayerStatsUI : MonoBehaviour
         AddTooltip(attackText,   () => DerivedBreakdown("Attack",   c => c.Attack,   c => c.skillBonusAttack,   c => c.equipBonusAttack,   c => c.playerClass != null ? StatName(c.playerClass.damageStat)   : null));
         AddTooltip(accuracyText, () => DerivedBreakdown("Accuracy", c => c.Accuracy, c => c.skillBonusAccuracy, c => c.equipBonusAccuracy, c => c.playerClass != null ? StatName(c.playerClass.accuracyStat) : null));
         AddTooltip(defenseText,  () => DerivedBreakdown("Defense",  c => c.Defense,  c => c.skillBonusDefense,  c => c.equipBonusDefense,  c => null));
+        AddTooltip(weaponPowerText, WeaponPowerBreakdown);
+    }
+
+    static string WeaponPowerBreakdown()
+    {
+        var c = PlayerManager.Instance?.ActiveCharacter;
+        if (c == null) return "Weapon Power";
+        var sb = new StringBuilder();
+        sb.Append("<b>Weapon Power</b>");
+        sb.Append($"\nWeapon {c.equipWeaponPower}");
+        int flatSkill = c.skillBonusWeaponPower, flatGear = c.equipBonusWeaponPower;
+        if (flatSkill != 0) sb.Append($"\n{Signed(flatSkill)} skills");
+        if (flatGear != 0)  sb.Append($"\n{Signed(flatGear)} gear");
+        float pct = c.skillBonusWeaponPowerPercent + c.equipBonusWeaponPowerPercent;
+        if (Mathf.Abs(pct) > 0.0001f) sb.Append($"\n×{(1f + pct):0.##} bonus");
+        sb.Append($"\n<b>= {c.WeaponPower}</b>");
+        return sb.ToString();
     }
 
     static void AddTooltip(TextMeshProUGUI text, Func<string> provider)

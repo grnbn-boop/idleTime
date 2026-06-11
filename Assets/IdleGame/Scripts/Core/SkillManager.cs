@@ -89,6 +89,8 @@ public class SkillManager : MonoBehaviour
         character.skillBonusBossDamage     = 0f;
         character.skillBonusMpRegen        = 0f;
         character.skillBonusDamage          = 0f;
+        character.skillBonusWeaponPower        = 0;
+        character.skillBonusWeaponPowerPercent = 0f;
 
         foreach (var tree in GetAccessibleTrees(character))
         {
@@ -131,6 +133,11 @@ public class SkillManager : MonoBehaviour
                     case SkillEffectType.BonusBossDamage: character.skillBonusBossDamage += val; break;
                     case SkillEffectType.BonusMpRegen:    character.skillBonusMpRegen    += val; break;
                     case SkillEffectType.BonusDamage:     character.skillBonusDamage     += val; break;
+                    // Weapon Power honours the isPercentage toggle, like the flat stat effects above.
+                    case SkillEffectType.BonusWeaponPower:
+                        if (percent) character.skillBonusWeaponPowerPercent += val;
+                        else         character.skillBonusWeaponPower += Mathf.RoundToInt(val);
+                        break;
                 }
             }
         }

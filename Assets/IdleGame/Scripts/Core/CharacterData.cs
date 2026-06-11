@@ -52,6 +52,10 @@ namespace IdleTime.Core
         [NonSerialized] public float skillBonusMpRegen;
         [NonSerialized] public float skillBonusDamage;
 
+        // Weapon Power skill bonuses: flat adds to the weapon's base power, percent scales it.
+        [NonSerialized] public int skillBonusWeaponPower;
+        [NonSerialized] public float skillBonusWeaponPowerPercent;
+
         // ── Base stats (class formula) ────────────────────────────────────────
         // STR adds flat Max HP on top of the class formula, then the percent bucket scales it.
 
@@ -99,6 +103,12 @@ namespace IdleTime.Core
         [NonSerialized] public float equipBonusMpRegen;
         [NonSerialized] public float equipBonusDamage;
 
+        // Weapon Power from gear: equipWeaponPower is the summed base power of equipped
+        // weapon(s); the bonus buckets let non-weapon gear add flat/percent on top.
+        [NonSerialized] public int equipWeaponPower;
+        [NonSerialized] public int equipBonusWeaponPower;
+        [NonSerialized] public float equipBonusWeaponPowerPercent;
+
         // ── Derived combat stats ──────────────────────────────────────────────
         // Attack   = (class damage-stat + weapon bonus) × percent bucket
         // Accuracy = class accuracy-stat + weapon bonus
@@ -123,6 +133,16 @@ namespace IdleTime.Core
 
         // Flat multiplier on all outgoing hit damage (skills/gear, not tied to a primary stat).
         public float DamageMultiplier     => Mathf.Max(0f, 1f + skillBonusDamage + equipBonusDamage);
+
+        // Weapon Power = equipped weapon base (+ flat skill/gear bonuses), scaled by the
+        // percent buckets. Feeds the hit-damage base alongside Attack. Never negative.
+        public int WeaponPower => Mathf.RoundToInt(
+            Mathf.Max(0, equipWeaponPower + skillBonusWeaponPower + equipBonusWeaponPower)
+            * (1f + skillBonusWeaponPowerPercent + equipBonusWeaponPowerPercent));
+
+        // Base value fed into the hit-damage formula before variance/crit/boss:
+        // stat-driven Attack plus the equipped weapon's (modified) power.
+        public int HitDamageBase => Attack + WeaponPower;
 
         public void EnsureBaseClassUnlocked()
         {

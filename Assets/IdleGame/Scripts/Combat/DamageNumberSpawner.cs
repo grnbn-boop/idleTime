@@ -106,7 +106,6 @@ namespace IdleTime.Combat
             TMP_FontAsset resolved = ResolveFont();
             if (resolved != null) tmp.font = resolved;
             tmp.alignment = TextAlignmentOptions.Center;
-            tmp.enableWordWrapping = false;
             tmp.fontStyle = FontStyles.Bold;
             tmp.rectTransform.sizeDelta = new Vector2(4f, 2f); // avoid auto-culling at a zero-size rect
             tmp.sortingLayerID = SortingLayer.NameToID(sortingLayer);

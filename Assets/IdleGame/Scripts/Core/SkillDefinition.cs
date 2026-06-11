@@ -62,5 +62,9 @@ namespace IdleTime.Core
         BonusBossDamage, // 15  +X% damage vs bosses
         BonusMpRegen,    // 16  +X% MP regen
         BonusDamage,     // 17  +X% to all outgoing hit damage
+
+        // Honours the isPercentage toggle (like the flat stat effects above): unchecked =
+        // flat Weapon Power, checked = +X% of Weapon Power.
+        BonusWeaponPower, // 18  +X (flat) or +X% to Weapon Power
     }
 }

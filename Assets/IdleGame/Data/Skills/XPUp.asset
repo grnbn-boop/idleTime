@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 502096791e5e13e42bfcb432c312302a, type: 3}
-  m_Name: BasicAttack
+  m_Name: XPUp
   m_EditorClassIdentifier: Assembly-CSharp::IdleTime.Core.SkillDefinition
-  skillName: Basic Attack
-  description: Your good ole basic attack.
-  icon: {fileID: 253636668, guid: 93bc6499c8976ae42b04960c9d4426d6, type: 3}
+  skillName: XP Up
+  description: Learning fast is gooder.
+  icon: {fileID: 1034625244, guid: 93bc6499c8976ae42b04960c9d4426d6, type: 3}
   maxLevel: 50
-  effectType: 18
-  effectValuePerLevel: 1
-  isPercentage: 0
+  effectType: 14
+  effectValuePerLevel: 0.01
+  isPercentage: 1

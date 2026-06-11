@@ -22,7 +22,7 @@ MonoBehaviour:
     prerequisites:
     - {fileID: 11400000, guid: aef8dc53dad93754cab8d585aaa99c4c, type: 2}
   - skill: {fileID: 11400000, guid: 184c669902d5bd543a03099f5b4a25da, type: 2}
-    position: {x: 98, y: 28}
+    position: {x: 105, y: 4}
     prerequisites:
     - {fileID: 11400000, guid: aef8dc53dad93754cab8d585aaa99c4c, type: 2}
   - skill: {fileID: 11400000, guid: 0322b79826e7ee24ab88c9d19d0f78f6, type: 2}
@@ -35,5 +35,21 @@ MonoBehaviour:
     - {fileID: 11400000, guid: aef8dc53dad93754cab8d585aaa99c4c, type: 2}
   - skill: {fileID: 11400000, guid: fdbaa3479b84d444b8ff21f14d7fffd0, type: 2}
     position: {x: 60, y: 120}
+    prerequisites:
+    - {fileID: 11400000, guid: aef8dc53dad93754cab8d585aaa99c4c, type: 2}
+  - skill: {fileID: 11400000, guid: d19293b2eeeac6b4b9fd10a543618243, type: 2}
+    position: {x: -254, y: -146}
+    prerequisites:
+    - {fileID: 11400000, guid: aef8dc53dad93754cab8d585aaa99c4c, type: 2}
+  - skill: {fileID: 11400000, guid: 3d23323f84f32eb479e7f44271721656, type: 2}
+    position: {x: -204, y: -45}
+    prerequisites:
+    - {fileID: 11400000, guid: aef8dc53dad93754cab8d585aaa99c4c, type: 2}
+  - skill: {fileID: 11400000, guid: af53b13cc88789b49a0fed77761a2853, type: 2}
+    position: {x: -160, y: -136}
+    prerequisites:
+    - {fileID: 11400000, guid: aef8dc53dad93754cab8d585aaa99c4c, type: 2}
+  - skill: {fileID: 11400000, guid: 925f09f791b36ba488f018eb8b373eef, type: 2}
+    position: {x: 156, y: 121}
     prerequisites:
     - {fileID: 11400000, guid: aef8dc53dad93754cab8d585aaa99c4c, type: 2}
