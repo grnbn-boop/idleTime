@@ -40,6 +40,12 @@ namespace IdleTime.Player
         [Header("Hit Response")]
         [SerializeField] private float invincibilityDuration = 0.8f;
 
+        [Header("Class Tint")]
+        [SerializeField] private Color normieTint = Color.white;
+        [SerializeField] private Color fighterTint = Color.red;
+        [SerializeField] private Color wizardTint = new Color(0.55f, 0.15f, 1f, 1f);
+        [SerializeField] private Color rangerTint = Color.green;
+
         [Header("Death Animation")]
         [Tooltip("Upward launch speed when the death sequence starts (then gravity takes over).")]
         [SerializeField] private float deathPopSpeed = 8f;
@@ -104,7 +110,11 @@ namespace IdleTime.Player
             {
                 PlayerManager.Instance.OnPlayerDeath += HandleDeath;
                 PlayerManager.Instance.OnPlayerRespawn += HandleRespawn;
+                PlayerManager.Instance.OnActiveCharacterChanged += ApplyClassTint;
+                PlayerManager.Instance.OnClassChanged += ApplyClassTint;
             }
+
+            ApplyClassTint();
         }
 
         private void OnDestroy()
@@ -113,6 +123,8 @@ namespace IdleTime.Player
             {
                 PlayerManager.Instance.OnPlayerDeath -= HandleDeath;
                 PlayerManager.Instance.OnPlayerRespawn -= HandleRespawn;
+                PlayerManager.Instance.OnActiveCharacterChanged -= ApplyClassTint;
+                PlayerManager.Instance.OnClassChanged -= ApplyClassTint;
             }
         }
 
@@ -603,6 +615,34 @@ namespace IdleTime.Player
 
             isInvincible = false;
             hitFlashCoroutine = null;
+        }
+
+        private void ApplyClassTint()
+        {
+            if (spriteRenderer == null)
+            {
+                return;
+            }
+
+            Color tint = GetClassTint(PlayerManager.Instance?.ActiveCharacter?.playerClass);
+            tint.a = spriteRenderer.color.a;
+            spriteRenderer.color = tint;
+        }
+
+        private Color GetClassTint(PlayerClass playerClass)
+        {
+            string className = playerClass != null ? playerClass.className : string.Empty;
+            switch (className.Trim().ToLowerInvariant())
+            {
+                case "fighter":
+                    return fighterTint;
+                case "wizard":
+                    return wizardTint;
+                case "ranger":
+                    return rangerTint;
+                default:
+                    return normieTint;
+            }
         }
 
         private void UpdateAnimation()

@@ -13,6 +13,7 @@ namespace IdleTime.Core
 
         public event Action OnActiveCharacterChanged;
         public event Action OnStatsChanged;
+        public event Action OnClassChanged;
         public event Action OnLevelUp;
         public event Action OnPlayerDeath;
         public event Action OnPlayerRespawn;
@@ -59,6 +60,36 @@ namespace IdleTime.Core
         }
 
         public void NotifyStatsChanged() => OnStatsChanged?.Invoke();
+
+        public bool SetActiveCharacterClass(PlayerClass newClass, bool saveImmediately = true)
+        {
+            var c = ActiveCharacter;
+            if (c == null || newClass == null) return false;
+
+            if (c.playerClass == newClass)
+            {
+                return false;
+            }
+
+            c.playerClass = newClass;
+            if (!c.unlockedClasses.Contains(newClass))
+            {
+                c.unlockedClasses.Add(newClass);
+            }
+
+            RecomputeAllBonuses(c);
+            c.ClampVitals();
+
+            OnClassChanged?.Invoke();
+            OnStatsChanged?.Invoke();
+
+            if (saveImmediately)
+            {
+                SaveManager.Instance?.SaveCharacter(c, includeLiveInventory: true);
+            }
+
+            return true;
+        }
 
         void Update()
         {

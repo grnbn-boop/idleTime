@@ -58,8 +58,8 @@ namespace IdleTime.Core
         [ContextMenu("Dump Slot Visuals")]
         public void DumpSlotVisuals()
         {
-            var invSlots = FindObjectsOfType<InventorySlotUI>(includeInactive: true);
-            var eqSlots  = FindObjectsOfType<EquipmentSlotUI>(includeInactive: true);
+            var invSlots = FindObjectsByType<InventorySlotUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var eqSlots  = FindObjectsByType<EquipmentSlotUI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             Debug.Log($"[Debug] Dumping {invSlots.Length} inventory + {eqSlots.Length} equipment slot visuals " +
                       "(open both panels first so slots are active):");
             foreach (var s in invSlots) s.DebugDumpVisual();

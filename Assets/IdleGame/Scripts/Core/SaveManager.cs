@@ -179,7 +179,14 @@ namespace IdleTime.Core
             // currentActivity/activityStartedUtcTicks: nothing consumes these yet —
             // the AFK-gains pass will apply offline progress here on load.
 
-            // Keep the authored base class; add any extra unlocked classes on top.
+            var savedClass = FindClass(data.classId);
+            if (savedClass != null)
+                c.playerClass = savedClass;
+
+            // The saved class is the character's current class. Add it and any
+            // extra unlocked classes so the skill-tree gate stays in sync.
+            if (c.playerClass != null && !c.unlockedClasses.Contains(c.playerClass))
+                c.unlockedClasses.Add(c.playerClass);
             foreach (var id in data.unlockedClassIds)
             {
                 var pc = FindClass(id);

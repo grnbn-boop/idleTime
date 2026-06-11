@@ -26,7 +26,7 @@ namespace IdleTime.UI
         {
             button = GetComponent<Button>();
             if (iconImage == null) iconImage = GetComponent<Image>();
-            if (playerAttack == null) playerAttack = FindFirstObjectByType<PlayerAttack>();
+            if (playerAttack == null) playerAttack = FindAnyObjectByType<PlayerAttack>();
         }
 
         private void OnEnable()
