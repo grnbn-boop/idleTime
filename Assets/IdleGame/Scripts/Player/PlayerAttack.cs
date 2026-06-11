@@ -22,10 +22,20 @@ namespace IdleTime.Player
         [SerializeField] private AttackVFX attackVFX;
         [SerializeField] private Camera worldCamera;
 
+        [Header("Auto Attack")]
+        [Tooltip("When on, the player auto-targets the nearest live monster, walks to it, and fights until it dies — then moves to the next. Toggle this from a UI button via ToggleAutoAttack().")]
+        [SerializeField] private bool autoAttack;
+        [Tooltip("How often (seconds) to scan for a new target while none is in sight. Keeps the scan off the every-frame path when the area is clear.")]
+        [SerializeField] private float autoScanInterval = 0.25f;
+
         private MonsterController target;
         private float attackTimer;
+        private float autoScanTimer;
         private readonly List<Collider2D> overlapResults = new List<Collider2D>();
         private ContactFilter2D monsterFilter;
+
+        /// <summary>Whether auto-attack is currently engaged. Read by UI to reflect button state.</summary>
+        public bool AutoAttackEnabled => autoAttack;
 
         private void Awake()
         {
@@ -62,7 +72,60 @@ namespace IdleTime.Player
             }
 
             ReadClickForTarget();
+
+            // Auto-attack only steps in when there's nothing to fight. A manual
+            // click (handled above) still takes priority and picks its own target.
+            if (autoAttack && (target == null || !target.IsAlive))
+                AutoAcquireTarget();
+
             UpdateAttackLoop();
+        }
+
+        // ── Auto attack ───────────────────────────────────────────────────────────
+
+        /// <summary>Hook for a UI button: flips auto-attack on/off.</summary>
+        public void ToggleAutoAttack() => SetAutoAttack(!autoAttack);
+
+        /// <summary>Hook for a UI toggle: sets auto-attack directly.</summary>
+        public void SetAutoAttack(bool enabled)
+        {
+            autoAttack = enabled;
+            autoScanTimer = 0f; // scan immediately on the next frame when turning on
+        }
+
+        // Throttled so an empty area doesn't run a scene scan every frame; when a
+        // target exists this isn't called at all (see Update guard).
+        private void AutoAcquireTarget()
+        {
+            autoScanTimer -= Time.deltaTime;
+            if (autoScanTimer > 0f) return;
+            autoScanTimer = autoScanInterval;
+
+            MonsterController nearest = FindNearestMonster();
+            if (nearest != null) SetTarget(nearest);
+            // No live monster found → leave target null; the player simply idles
+            // on the spot until the spawner produces one.
+        }
+
+        private MonsterController FindNearestMonster()
+        {
+            MonsterController[] monsters = FindObjectsByType<MonsterController>();
+            MonsterController nearest = null;
+            float bestSqr = float.MaxValue;
+            Vector2 origin = transform.position;
+
+            foreach (MonsterController mc in monsters)
+            {
+                if (mc == null || !mc.IsAlive) continue;
+                float sqr = ((Vector2)mc.transform.position - origin).sqrMagnitude;
+                if (sqr < bestSqr)
+                {
+                    bestSqr = sqr;
+                    nearest = mc;
+                }
+            }
+
+            return nearest;
         }
 
         private void ReadClickForTarget()
@@ -178,6 +241,7 @@ namespace IdleTime.Player
         {
             PlayerManager.Instance?.GainXP(mc.data.xpReward);
             ClearTarget();
+            autoScanTimer = 0f; // re-target the next monster without the scan delay
         }
 
         private void OnTargetRespawned(MonsterController mc) => ClearTarget();
