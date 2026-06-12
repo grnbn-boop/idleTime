@@ -11,9 +11,9 @@ namespace IdleTime.Core
 
         void Awake()
         {
-            if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+            if (Instance != null && Instance != this) { Destroy(transform.root.gameObject); return; }
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            DontDestroyOnLoad(transform.root.gameObject);
         }
 
         // True if this character's current class may equip the item into its slot.

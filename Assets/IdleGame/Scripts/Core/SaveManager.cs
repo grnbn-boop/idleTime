@@ -24,14 +24,43 @@ namespace IdleTime.Core
         public static string CharacterPath(string characterName) =>
             Path.Combine(SaveFolder, "char_" + Sanitize(characterName) + ".json");
 
+        // The account name from the master save, cached on Awake. Empty until the player
+        // creates an account on the character-select screen.
+        public string AccountName { get; private set; } = "";
+        public bool HasAccount => !string.IsNullOrWhiteSpace(AccountName);
+
         void Awake()
         {
-            if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+            if (Instance != null && Instance != this) { Destroy(transform.root.gameObject); return; }
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            DontDestroyOnLoad(transform.root.gameObject);
+
+            LoadAccountName();
 
             if (itemDatabase == null || itemDatabase.Length == 0)
                 Debug.LogWarning("[Save] Item database is empty — saved gear/inventory can't be restored. Right-click the SaveManager component → Auto-Fill Databases.");
+        }
+
+        void LoadAccountName()
+        {
+            if (!File.Exists(MasterPath)) return;
+            var master = ReadJson<MasterSaveData>(MasterPath);
+            if (master != null && !string.IsNullOrEmpty(master.accountName))
+                AccountName = master.accountName;
+        }
+
+        // Sets the account name and persists it immediately, merging into any existing
+        // master save so a full SaveAll isn't required just to record the name (the
+        // roster screen runs before a character has even been chosen).
+        public void SetAccountName(string name)
+        {
+            AccountName = (name ?? "").Trim();
+
+            Directory.CreateDirectory(SaveFolder);
+            var master = File.Exists(MasterPath) ? ReadJson<MasterSaveData>(MasterPath) : null;
+            master ??= new MasterSaveData();
+            master.accountName = AccountName;
+            WriteJson(MasterPath, master);
         }
 
         void OnApplicationQuit() => SaveAll();
@@ -54,6 +83,7 @@ namespace IdleTime.Core
             var master = new MasterSaveData
             {
                 activeIndex = pm.ActiveIndex,
+                accountName = AccountName,
                 savedAtUtcTicks = now.Ticks,
                 savedAtUtc = now.ToString("u"),
             };

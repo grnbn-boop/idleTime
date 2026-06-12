@@ -8,12 +8,14 @@ using IdleTime.Interactions;
 namespace IdleTime.EditorTools
 {
     // Menu IdleTime ▸ New Room From Template. Scene-per-room means every room needs the
-    // same shared rig (the GameSystems prefab of DontDestroyOnLoad singletons, plus Player,
-    // Camera, UI Canvas + Portal Nav HUD, EventSystem). Rather than rebuild that each time,
-    // you assemble it once into a TEMPLATE scene; this tool copies that template to a new
-    // room scene, registers it in Build Settings, and creates a paired RoomDefinition so
-    // the new room drops straight into the map tree. You then paint the level and place
-    // portals.
+    // same scene BODY — Player, Camera, UI Canvas (+ UIManager + ItemDragManager), and the
+    // EventSystem. It does NOT need GameSystems: that's the persistent brain, bootstrapped
+    // once from Resources/GameSystems by GameBootstrap (see SYSTEMS_WALKTHROUGH §6½). So the
+    // TEMPLATE scene should hold the body only — assemble it once, then this tool copies it
+    // to a new room scene, registers it in Build Settings, and creates a paired
+    // RoomDefinition so the new room drops straight into the map tree. After creating, it
+    // runs Check Scene Rig on the new room so you immediately see it's complete; you then
+    // paint the level (Grid), place the spawner + portals, and wire each portal.
     public class RoomBuilderWindow : EditorWindow
     {
         const string TemplatePrefKey = "IdleTime.RoomBuilder.TemplateGuid";
@@ -48,10 +50,20 @@ namespace IdleTime.EditorTools
                     template != null ? AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(template)) : "");
 
             EditorGUILayout.HelpBox(
-                "The template is a scene holding the shared rig: the GameSystems prefab " +
-                "(managers / fader / tooltip), Player, Camera, UI Canvas + Portal Nav HUD, and " +
-                "EventSystem. Save it before stamping rooms — copies use the saved file.",
+                "The template is a scene holding the room BODY only: Player, Camera, UI Canvas " +
+                "(+ UIManager + ItemDragManager), and EventSystem. Do NOT put GameSystems in it — " +
+                "the managers are bootstrapped from Resources/GameSystems at Play. Save the template " +
+                "before stamping rooms — copies use the saved file.",
                 MessageType.Info);
+
+            // The brain is bootstrapped from a Resources prefab; without it, stamped rooms boot
+            // with a body but no managers. Surface that here rather than at first Play.
+            if (Resources.Load<GameObject>("GameSystems") == null)
+                EditorGUILayout.HelpBox(
+                    "No 'GameSystems' prefab found under a Resources/ folder. GameBootstrap spawns it " +
+                    "at launch — make GameSystems a prefab at Resources/GameSystems.prefab, or rooms " +
+                    "will start without their managers.",
+                    MessageType.Warning);
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("New Room", EditorStyles.boldLabel);
@@ -115,7 +127,11 @@ namespace IdleTime.EditorTools
             Debug.Log($"[RoomBuilder] Created room '{safe}' at {scenePath}" +
                       $"{(addToBuild ? " · added to Build Settings" : "")}" +
                       $"{(def != null ? " · made RoomDefinition" : "")}. " +
-                      "Next: paint the level, then place + wire its portals (set each portal's Room + Destination).");
+                      "Next: paint the level (Grid), place the MonsterSpawner + portals, and wire each portal (Room + Destination).");
+
+            // Verify the stamped room matches the brain/body model (body present, no stray
+            // GameSystems, Resources prefab valid). Only meaningful once the room is open.
+            if (openAfter) SceneRigChecker.ReportRig();
         }
 
         static void EnsureFolder(string folder)

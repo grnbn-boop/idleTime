@@ -25,11 +25,11 @@ namespace IdleTime.Core
         {
             if (Instance != null && Instance != this)
             {
-                Destroy(gameObject);
+                Destroy(transform.root.gameObject);
                 return;
             }
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            DontDestroyOnLoad(transform.root.gameObject);
 
             _slots = new InventorySlot[MaxSlots];
             for (int i = 0; i < MaxSlots; i++)

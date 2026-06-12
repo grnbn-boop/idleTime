@@ -1777,7 +1777,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 534100324}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
         m_MethodName: ToggleStats
         m_Mode: 1
@@ -2161,6 +2161,64 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 334019531}
   m_CullTransparentMesh: 1
+--- !u!1 &352619135
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 352619137}
+  - component: {fileID: 352619136}
+  m_Layer: 0
+  m_Name: MonsterSpawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &352619136
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 352619135}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ddd41699db8da01458c175975a465f0f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IdleTime.Combat.MonsterSpawner
+  monsterPrefab: {fileID: 3861143469177787668, guid: 27327f943932beb4199a551dfc0c8cc7, type: 3}
+  maxSpawnCount: 2
+  spawnZones:
+  - center: {x: -9.98, y: 0.68}
+    size: {x: 1.66, y: 2.69}
+  - center: {x: 17, y: 1.49}
+    size: {x: 12.5, y: 2.69}
+  - center: {x: 36.8, y: -0.18}
+    size: {x: 12.5, y: 2.69}
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 1
+  groundCheckDistance: 30
+  minSpawnSeparation: 1.5
+--- !u!4 &352619137
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 352619135}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.7084389, y: 0.30610013, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &385362138
 GameObject:
   m_ObjectHideFlags: 0
@@ -2271,8 +2329,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1102, y: 391.19}
+  m_AnchoredPosition: {x: 0, y: -52}
+  m_SizeDelta: {x: 1920, y: 976.75}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &403826130
 MonoBehaviour:
@@ -2501,8 +2559,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 15.794983}
-  m_SizeDelta: {x: 0, y: -138.4101}
+  m_AnchoredPosition: {x: 0, y: 19.1222}
+  m_SizeDelta: {x: 0, y: -246.2446}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &431070905
 MonoBehaviour:
@@ -3025,17 +3083,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 499365083}
   m_CullTransparentMesh: 1
---- !u!114 &534100324 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3973471548689912251, guid: 193cd0a18e7282243ace4e055d040334, type: 3}
-  m_PrefabInstance: {fileID: 4244868444648727677}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7fb57a2982754df468b9eb527dc28074, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIManager
 --- !u!1 &562224520
 GameObject:
   m_ObjectHideFlags: 0
@@ -5192,7 +5239,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 534100324}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
         m_MethodName: ToggleInventory
         m_Mode: 1
@@ -8507,6 +8554,68 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1074809518}
   m_CullTransparentMesh: 1
+--- !u!1 &1143071725
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1143071728}
+  - component: {fileID: 1143071727}
+  - component: {fileID: 1143071726}
+  m_Layer: 0
+  m_Name: UIManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1143071726
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1143071725}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2d2f9dd5f2ec234491b645170fb7ee4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IdleTime.UI.ItemDragManager
+  rootCanvas: {fileID: 1664585272}
+--- !u!114 &1143071727
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1143071725}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7fb57a2982754df468b9eb527dc28074, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIManager
+  inventoryOverlay: {fileID: 1457235744}
+  equipOverlay: {fileID: 272298326}
+  statOverlay: {fileID: 1262873301}
+  skillOverlay: {fileID: 1803995670}
+--- !u!4 &1143071728
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1143071725}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 284.56036, y: 103.76115, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1153357224
 GameObject:
   m_ObjectHideFlags: 0
@@ -9406,7 +9515,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 534100324}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
         m_MethodName: ToggleEquipment
         m_Mode: 1
@@ -12723,7 +12832,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 534100324}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
         m_MethodName: ToggleSkills
         m_Mode: 1
@@ -13705,7 +13814,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 534100324}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
         m_MethodName: ToggleSkills
         m_Mode: 1
@@ -16881,6 +16990,10 @@ PrefabInstance:
       propertyPath: m_ColliderPaths.Array.data[0].m_ColliderPaths.Array.data[4].Array.data[10].Y
       value: -20000000
       objectReference: {fileID: 0}
+    - target: {fileID: 5537385633466509097, guid: 423c0b181f7edc74d996b8029b81a767, type: 3}
+      propertyPath: ladderTilemap
+      value: 
+      objectReference: {fileID: 147802070}
     - target: {fileID: 7743529811835967179, guid: 423c0b181f7edc74d996b8029b81a767, type: 3}
       propertyPath: m_Name
       value: Grid
@@ -17218,11 +17331,13 @@ SceneRoots:
   m_Roots:
   - {fileID: 4244868444648727677}
   - {fileID: 8472610288122454463}
+  - {fileID: 352619137}
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 3446677178454315508}
   - {fileID: 7828444520249576477}
   - {fileID: 1849749637302291241}
+  - {fileID: 1143071728}
   - {fileID: 1664585273}
   - {fileID: 1359623223}
   - {fileID: 203436954}

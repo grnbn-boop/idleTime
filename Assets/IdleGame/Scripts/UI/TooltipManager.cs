@@ -41,9 +41,9 @@ namespace IdleTime.UI
 
         void Awake()
         {
-            if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+            if (Instance != null && Instance != this) { Destroy(transform.root.gameObject); return; }
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            DontDestroyOnLoad(transform.root.gameObject);
             Build();
             Hide();
         }

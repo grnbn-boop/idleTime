@@ -9,60 +9,108 @@ using IdleTime.CameraRig;
 
 namespace IdleTime.EditorTools
 {
-    // Menu IdleTime ▸ Check Scene Rig. Verifies the OPEN scene has exactly one of every
-    // piece a playable room needs — the DontDestroyOnLoad manager singletons plus the
-    // per-scene Player / Camera / UI / EventSystem. Catches a room built by hand that's
-    // missing the GameSystems prefab, or one that ended up with two EventSystems. (The
-    // singletons self-dedupe at RUNTIME, but a duplicate inside one scene is an authoring
-    // mistake worth surfacing before Play.)
+    // Menu IdleTime ▸ Check Scene Rig. Validates the OPEN scene against the brain/body
+    // split (see SYSTEMS_WALKTHROUGH §6½):
+    //   • BRAIN — the global manager singletons. They come from the bootstrapped
+    //             GameSystems prefab (Resources/GameSystems) at runtime, so a room scene
+    //             should NOT contain them. Anything found here is an authored leftover to
+    //             remove. We instead validate the prefab itself carries the full brain.
+    //   • BODY  — the per-room pieces a scene must place for itself: Player, Camera, the
+    //             UI managers that reference scene UI (UIManager, ItemDragManager), and
+    //             the EventSystem. PortalNavHUD is omitted on purpose — it auto-creates.
     public static class SceneRigChecker
     {
-        [MenuItem("IdleTime/Check Scene Rig")]
-        static void Check()
-        {
-            (System.Type type, string label)[] required =
-            {
-                // Persistent singletons (the GameSystems prefab)
-                (typeof(PlayerManager), "PlayerManager"),
-                (typeof(SaveManager), "SaveManager"),
-                (typeof(Inventory), "Inventory"),
-                (typeof(EquipmentManager), "EquipmentManager"),
-                (typeof(SkillManager), "SkillManager"),
-                (typeof(IdleTime.UI.ItemDragManager), "ItemDragManager"),
-                (typeof(IdleTime.UI.TooltipManager), "TooltipManager"),
-                (typeof(ScreenFader), "ScreenFader"),
-                (typeof(DeathSequenceController), "DeathSequenceController"),
-                (typeof(UIManager), "UIManager"),
-                // Per-scene rig
-                (typeof(ClickToMove2D), "Player (ClickToMove2D)"),
-                (typeof(CameraFollow2D), "Camera (CameraFollow2D)"),
-                (typeof(IdleTime.UI.PortalNavHUD), "Portal Nav HUD"),
-                (typeof(EventSystem), "EventSystem"),
-            };
+        const string RigResourcePath = "GameSystems";   // Resources/GameSystems.prefab
 
-            int missing = 0, dupes = 0;
-            foreach (var (type, label) in required)
+        // Global singletons supplied by the bootstrapped GameSystems prefab.
+        static readonly (System.Type type, string label)[] Brain =
+        {
+            (typeof(PlayerManager), "PlayerManager"),
+            (typeof(SaveManager), "SaveManager"),
+            (typeof(Inventory), "Inventory"),
+            (typeof(EquipmentManager), "EquipmentManager"),
+            (typeof(SkillManager), "SkillManager"),
+            (typeof(IdleTime.UI.TooltipManager), "TooltipManager"),
+            (typeof(ScreenFader), "ScreenFader"),
+            (typeof(DeathSequenceController), "DeathSequenceController"),
+        };
+
+        // Per-room pieces the scene must place for itself (exactly one each). UIManager and
+        // ItemDragManager live here, not in the brain, because both hold references to the
+        // scene's own UI (overlays / root canvas) and must rebuild per room.
+        static readonly (System.Type type, string label)[] Body =
+        {
+            (typeof(ClickToMove2D), "Player (ClickToMove2D)"),
+            (typeof(CameraFollow2D), "Camera (CameraFollow2D)"),
+            (typeof(UIManager), "UIManager"),
+            (typeof(IdleTime.UI.ItemDragManager), "ItemDragManager"),
+            (typeof(EventSystem), "EventSystem"),
+        };
+
+        [MenuItem("IdleTime/Check Scene Rig")]
+        static void Check() => ReportRig();
+
+        // Logs a full pass/fail report for the active scene. Public so the room builder can
+        // run it on a freshly stamped room.
+        public static void ReportRig()
+        {
+            int problems = 0;
+
+            // BRAIN: should be bootstrapped, not authored into the room.
+            foreach (var (type, label) in Brain)
             {
-                int count = Object.FindObjectsByType(type, FindObjectsInactive.Include, FindObjectsSortMode.None).Length;
-                if (count == 0)
+                int count = CountInScene(type);
+                if (count > 0)
                 {
-                    missing++;
-                    Debug.LogWarning($"[Rig] Missing: {label}.");
-                }
-                else if (count > 1)
-                {
-                    dupes++;
-                    Debug.LogWarning($"[Rig] {count}× {label} in this scene — expected exactly 1.");
+                    problems++;
+                    Debug.LogWarning($"[Rig] '{label}' is in this scene ({count}×) — it should come from the " +
+                                     "bootstrapped GameSystems prefab, not the room. Remove it from the scene.");
                 }
             }
 
-            int ladderIssues = CheckLadderSetup();
+            // BODY: must be present exactly once.
+            foreach (var (type, label) in Body)
+            {
+                int count = CountInScene(type);
+                if (count == 0) { problems++; Debug.LogWarning($"[Rig] Missing body piece: {label}."); }
+                else if (count > 1) { problems++; Debug.LogWarning($"[Rig] {count}× {label} in this scene — expected exactly 1."); }
+            }
+
+            problems += ValidateRigPrefab();
+            problems += CheckLadderSetup();
 
             string scene = SceneManager.GetActiveScene().name;
-            if (missing == 0 && dupes == 0 && ladderIssues == 0)
-                Debug.Log($"[Rig] '{scene}' has the full rig — 1 of each required piece. Good to Play.");
+            if (problems == 0)
+                Debug.Log($"[Rig] '{scene}' matches the room model — scene body present, no stray brain, GameSystems prefab valid. Good to Play.");
             else
-                Debug.LogWarning($"[Rig] '{scene}': {missing} missing, {dupes} duplicated, {ladderIssues} ladder issue(s) — see warnings above.");
+                Debug.LogWarning($"[Rig] '{scene}': {problems} issue(s) — see warnings above.");
+        }
+
+        static int CountInScene(System.Type type) =>
+            Object.FindObjectsByType(type, FindObjectsInactive.Include, FindObjectsSortMode.None).Length;
+
+        // GameBootstrap spawns Resources/GameSystems at launch, so make sure it exists and
+        // carries the full brain — otherwise rooms boot without their managers.
+        static int ValidateRigPrefab()
+        {
+            var prefab = Resources.Load<GameObject>(RigResourcePath);
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[Rig] No '{RigResourcePath}' prefab under a Resources/ folder — GameBootstrap can't " +
+                                 "spawn the managers. Make GameSystems a prefab at Resources/GameSystems.prefab.");
+                return 1;
+            }
+
+            int missing = 0;
+            foreach (var (type, label) in Brain)
+            {
+                if (prefab.GetComponentInChildren(type, true) == null)
+                {
+                    missing++;
+                    Debug.LogWarning($"[Rig] GameSystems prefab is missing '{label}' — add it so the bootstrapped brain is complete.");
+                }
+            }
+            return missing;
         }
 
         // The one silent footgun in the ladder setup: if the player's terrainMask still

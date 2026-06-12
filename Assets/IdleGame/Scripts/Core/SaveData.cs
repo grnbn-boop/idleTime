@@ -11,6 +11,12 @@ namespace IdleTime.Core
     {
         public int version = 1;
         public int activeIndex;
+
+        // Account-wide display name, entered once on the character-select screen the
+        // first time the game is launched. Its presence is what distinguishes a fresh
+        // install (prompt for a name) from a returning player (skip straight to the roster).
+        public string accountName = "";
+
         public List<string> characterNames = new();
 
         // UTC timestamp of the last save. AFK/offline gains will diff the next

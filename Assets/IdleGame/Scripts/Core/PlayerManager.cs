@@ -29,11 +29,11 @@ namespace IdleTime.Core
         {
             if (Instance != null && Instance != this)
             {
-                Destroy(gameObject);
+                Destroy(transform.root.gameObject);
                 return;
             }
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            DontDestroyOnLoad(transform.root.gameObject);
         }
 
         void Start()
