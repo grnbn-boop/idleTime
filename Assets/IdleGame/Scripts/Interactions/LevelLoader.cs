@@ -1,66 +1,67 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using IdleTime.Core;
 
 namespace IdleTime.Interactions
 {
     // The single seam between "the player entered an active portal" and "the world
-    // changes." Everything else in the portal system is agnostic to how you expand
-    // out of the test bed — only this file needs to change when you pick an approach.
+    // changes." Wired for OPTION A — one scene per room: a portal carries the build
+    // name of the room to travel to (forward portals → the next room, return portals →
+    // the previous room, since map traversal is just "which scene name does this portal
+    // point at"). The managers (PlayerManager, Inventory, Equipment, SaveManager,
+    // ScreenFader, this app's other DontDestroyOnLoad singletons) and the static
+    // RoomProgress all persist across the load, so progress/inventory carry over and a
+    // room you've cleared stays cleared.
     //
-    // ───────────────────────────────────────────────────────────────────────────
-    //  EXPANSION OPTIONS (pick one when there's a second level to go to)
-    // ───────────────────────────────────────────────────────────────────────────
+    // Setup to make a destination live: create the room as its own .unity scene and add
+    // it to Build Settings (File ▸ Build Settings ▸ Add Open Scenes). Until then, Go()
+    // logs a clear warning rather than throwing, so half-authored maps don't break play.
     //
-    //  A. ONE SCENE PER LEVEL  (recommended starting point)
-    //     Each level is its own .unity file; the portal carries the next scene name.
-    //         SceneManager.LoadScene(destination);
-    //     + Cleanest separation, smallest scenes, plays nicely with the existing
-    //       death→reload-active-scene flow and DontDestroyOnLoad managers.
-    //     + Matches IdleOn's discrete "screens."
-    //     - Brief load hitch; no cross-scene object references (use the manager
-    //       singletons, which is already the pattern here).
-    //
-    //  B. ONE BIG SCENE, MOVE THE PLAYER  (location-based)
-    //     All rooms laid out in one scene; the portal teleports the player + camera
-    //     to the next room's anchor Transform.
-    //         player.position = destinationAnchor.position; // + snap camera
-    //     + No load hitch, trivial state, whole world visible at once.
-    //     - Everything loads/simulates at once (memory + all spawners running); one
-    //       giant scene is unwieldy for source control as content grows.
-    //
-    //  C. ADDITIVE SCENES  (best long-term, more plumbing)
-    //     A persistent bootstrap scene holds the managers; level scenes load/unload
-    //     additively for seamless transitions.
-    //         SceneManager.LoadSceneAsync(destination, LoadSceneMode.Additive);
-    //         // then unload the old one
-    //     + Seamless + modular. Upgrade path from A: A and C share the per-scene
-    //       layout, so starting with A costs nothing later.
-    //
-    //  RECOMMENDATION: start with A. The portal already passes a string destination,
-    //  so going live is a one-line change below. Move to C if/when you want seamless
-    //  transitions. Wrap whichever you choose in a ScreenFader fade for polish (the
-    //  project already has one — see DeathSequenceController for the pattern).
-    // ───────────────────────────────────────────────────────────────────────────
+    // (Options B "one big scene, teleport" and C "additive scenes" remain valid future
+    // pivots — A and C share the per-scene room layout, so this is a free upgrade path.)
     public static class LevelLoader
     {
+        const float FadeOutDuration = 0.4f;
+        const float FadeInDuration = 0.4f;
+
         public static void Go(string destination)
         {
             if (string.IsNullOrWhiteSpace(destination))
             {
-                Debug.Log("[LevelLoader] Portal entered, but no destination is set yet " +
-                          "(stub). Set 'Destination Scene Name' on the PortalController, " +
-                          "then enable Option A below.");
+                Debug.Log("[LevelLoader] Portal entered, but no destination is set " +
+                          "(stub). Set 'Destination Scene Name' on the PortalController.");
                 return;
             }
 
-            // --- OPTION A (uncomment when the destination scene exists & is in Build Settings) ---
-            // if (Application.CanStreamedLevelBeLoaded(destination))
-            //     SceneManager.LoadScene(destination);
-            // else
-            //     Debug.LogWarning($"[LevelLoader] Scene '{destination}' is not in Build Settings.");
+            if (!Application.CanStreamedLevelBeLoaded(destination))
+            {
+                Debug.LogWarning($"[LevelLoader] Scene '{destination}' is not in Build Settings — " +
+                                 "create the room scene and add it via File ▸ Build Settings.");
+                return;
+            }
 
-            Debug.Log($"[LevelLoader] (stub) Would travel to '{destination}'. " +
-                      "Uncomment Option A in LevelLoader.cs to make it live.");
+            // Fade out → load → fade in. ScreenFader is DontDestroyOnLoad, so the single
+            // coroutine keeps running across the scene load (its host object survives).
+            var fader = ScreenFader.Instance;
+            if (fader != null)
+                fader.StartCoroutine(Transition(destination, fader));
+            else
+                SceneManager.LoadScene(destination);   // no fader in scene → straight cut
+        }
+
+        static IEnumerator Transition(string destination, ScreenFader fader)
+        {
+            yield return fader.Fade(1f, FadeOutDuration);
+
+            AsyncOperation op = SceneManager.LoadSceneAsync(destination);
+            while (op != null && !op.isDone) yield return null;
+
+            // One frame so the new room's objects run Awake/Start (portals derive their
+            // open state, the nav HUD rebuilds) before we reveal them.
+            yield return null;
+
+            yield return fader.Fade(0f, FadeInDuration);
         }
     }
 }

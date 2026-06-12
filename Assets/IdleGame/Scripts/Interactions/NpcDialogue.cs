@@ -41,6 +41,15 @@ namespace IdleTime.Interactions
             if (worldCamera == null)
                 worldCamera = Camera.main;
 
+            // NPCs must never block the player or enemies — clicks are resolved via
+            // OverlapPoint (works on triggers), so force every collider on the NPC to
+            // be a trigger. Mirrors MonsterController forcing its collider to trigger.
+            foreach (var npcCollider in GetComponentsInChildren<Collider2D>(true))
+            {
+                if (npcCollider != null)
+                    npcCollider.isTrigger = true;
+            }
+
             playerMovement = FindAnyObjectByType<ClickToMove2D>();
 
             if (dialogueText != null)

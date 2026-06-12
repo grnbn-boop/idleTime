@@ -6,21 +6,26 @@ using IdleTime.Player;
 
 namespace IdleTime.Interactions
 {
-    // The portal that gates progress to the next level. While the room hasn't met its
-    // kill quota it plays the inactive idle and shows "<remaining> to advance"; once the
-    // quota is met it permanently switches to the active idle and shows the enter prompt.
-    // When active, the player walking into the trigger fires the level transition.
+    // A portal = one edge of the map TREE: it leads from the room it lives in (`room`)
+    // to a neighbouring room (`destination` — a forward child, or the back parent). Its
+    // gate and target scene are read straight off the RoomDefinition tree, so the asset
+    // is the single source of truth: a forward portal opens once the room's shared kill
+    // pool reaches that edge's killsRequired; the back portal is always open.
     //
-    // Progress is keyed by `roomId` and stored in the static RoomProgress, so it survives
-    // the death→scene-reload flow. One portal per scene = one room is the simplest mapping.
+    // While locked it plays the inactive idle and shows "<remaining>"; when open it
+    // switches to the active idle, and walking into the trigger fires LevelLoader.Go to
+    // the destination scene. Progress is keyed by the room's id in the static RoomProgress,
+    // so it survives the death→scene-reload flow and is saved across sessions.
+    //
     [RequireComponent(typeof(Animator))]
     public class PortalController : MonoBehaviour
     {
-        [Header("Identity & Requirement")]
-        [Tooltip("Unique key for this room's progress. Keep it stable across scene reloads.")]
-        [SerializeField] private string roomId = "room_01";
-        [Tooltip("Kills needed in this room before the portal activates.")]
-        [SerializeField] private int killsRequired = 10;
+        [Header("Map")]
+        [Tooltip("The room this portal LIVES in — its shared kill pool + identity.")]
+        [SerializeField] private RoomDefinition room;
+        [Tooltip("Where this portal leads: one of `room`'s forward children, or its back parent. " +
+                 "The gate (kills required) is read from the tree edge; the back edge is always open.")]
+        [SerializeField] private RoomDefinition destination;
 
         [Header("References (auto-found if left empty)")]
         [SerializeField] private Animator animator;
@@ -38,8 +43,6 @@ namespace IdleTime.Interactions
         [SerializeField] private string unlockedText = "";
 
         [Header("Transition")]
-        [Tooltip("Left empty = stub (logs only). See LevelLoader.cs for the expansion options.")]
-        [SerializeField] private string destinationSceneName = "";
         [Tooltip("If true, the player must walk into the portal's trigger to travel. If false, activation alone is enough (wire OnPortalEntered yourself).")]
         [SerializeField] private bool travelOnPlayerEnter = true;
         [Tooltip("Only fire the transition once per scene load (avoids re-triggering while standing in the trigger).")]
@@ -50,8 +53,17 @@ namespace IdleTime.Interactions
         // Fired when the player travels through an active portal.
         public static event Action<PortalController> OnPortalEntered;
 
-        public string RoomId => roomId;
         public bool IsActive { get; private set; }
+
+        private string resolvedRoomId;
+        private int resolvedRequiredKills;
+        private string resolvedDestinationScene;
+        private bool isConfigured;
+
+        public string RoomId => resolvedRoomId;
+
+        // Nav-HUD label: the room this portal leads to.
+        public string DisplayName => destination != null ? destination.DisplayName : "Unknown Room";
 
         private int activeParamHash;
         private bool hasTravelled;
@@ -61,21 +73,56 @@ namespace IdleTime.Interactions
             if (animator == null) animator = GetComponent<Animator>();
             if (promptText == null) promptText = GetComponentInChildren<TMP_Text>();
             activeParamHash = Animator.StringToHash(activeBoolParameter);
+
+            ResolveFromTree();
         }
+
+        private void ResolveFromTree()
+        {
+            resolvedRoomId = room != null ? room.RoomId : gameObject.scene.name;
+            resolvedDestinationScene = destination != null ? destination.sceneName : "";
+            isConfigured = room != null && destination != null;
+
+            if (!isConfigured)
+            {
+                resolvedRequiredKills = int.MaxValue;
+                Debug.LogWarning($"[Portal] '{name}' needs both Room and Destination assigned.", this);
+                return;
+            }
+
+            int gate = room.KillsToReach(destination);
+            if (gate < 0)
+            {
+                Debug.LogWarning($"[Portal] '{name}': destination " +
+                                 $"'{(destination != null ? destination.name : "none")}' is not a neighbour of " +
+                                 $"room '{room.name}' (not a forward child or the back parent).", this);
+                isConfigured = false;
+                resolvedRequiredKills = int.MaxValue;
+            }
+            else
+            {
+                resolvedRequiredKills = gate;
+            }
+        }
+
+        // This portal is open iff the room's (shared, persisted) kill total has reached
+        // THIS edge's threshold. Threshold 0 → open from the start (the back portal).
+        private bool RequirementMet => isConfigured && RoomProgress.GetKills(resolvedRoomId) >= resolvedRequiredKills;
 
         private void OnEnable()
         {
-            // Rehydrate from the persistent store first (covers scene reloads on death).
-            if (RoomProgress.IsUnlocked(roomId) || RoomProgress.GetKills(roomId) >= killsRequired)
+            // Derive state from the (persisted) room kill total — covers scene reloads on
+            // death and a cold boot where SaveManager has already rehydrated RoomProgress.
+            if (RequirementMet)
             {
-                Activate(persist: false);   // already recorded; just reflect it
+                Activate();   // already met; just reflect it
             }
             else
             {
                 IsActive = false;
                 ApplyAnimatorState();
                 RefreshPrompt();
-                MonsterController.OnAnyDeath += HandleMonsterKilled;
+                if (isConfigured) MonsterController.OnAnyDeath += HandleMonsterKilled;
             }
         }
 
@@ -84,23 +131,26 @@ namespace IdleTime.Interactions
             MonsterController.OnAnyDeath -= HandleMonsterKilled;
         }
 
-        private void HandleMonsterKilled(MonsterController _)
+        private void HandleMonsterKilled(MonsterController mc)
         {
-            // NOTE: counts every monster death in the scene. With one portal per scene
-            // that maps cleanly to "this room." To gate on specific enemy types or a
-            // particular spawn zone later, filter on the MonsterController here.
-            int kills = RoomProgress.AddKill(roomId);
-            if (kills >= killsRequired)
-                Activate(persist: true);
+            if (!isConfigured) return;
+
+            // Bump the room's shared total once per death (AddKillOnce dedups across the
+            // other portals in this room), then gate on THIS edge's own threshold.
+            // NOTE: counts every monster death in the scene. To gate on specific enemy
+            // types or a spawn zone later, filter on `mc` here before counting.
+            int deathToken = mc != null ? mc.GetHashCode() : 0;
+            int kills = RoomProgress.AddKillOnce(resolvedRoomId, deathToken);
+            if (kills >= resolvedRequiredKills)
+                Activate();
             else
                 RefreshPrompt();
         }
 
-        private void Activate(bool persist)
+        private void Activate()
         {
             bool wasActive = IsActive;
             IsActive = true;
-            if (persist) RoomProgress.SetUnlocked(roomId);
 
             MonsterController.OnAnyDeath -= HandleMonsterKilled;   // no longer counting
             ApplyAnimatorState();
@@ -124,7 +174,13 @@ namespace IdleTime.Interactions
             }
             else
             {
-                int remaining = Mathf.Max(0, killsRequired - RoomProgress.GetKills(roomId));
+                if (!isConfigured)
+                {
+                    promptText.text = "";
+                    return;
+                }
+
+                int remaining = Mathf.Max(0, resolvedRequiredKills - RoomProgress.GetKills(resolvedRoomId));
                 promptText.text = string.Format(lockedFormat, remaining);
             }
         }
@@ -137,17 +193,24 @@ namespace IdleTime.Interactions
 
             hasTravelled = true;
             OnPortalEntered?.Invoke(this);
-            LevelLoader.Go(destinationSceneName);
+            LevelLoader.Go(resolvedDestinationScene);
         }
 
-        // --- Save/load seam ----------------------------------------------------------
-        // RoomProgress already survives scene reloads (it's static). To persist across
-        // sessions, serialize each room's kills/unlocked into SaveData and call
-        // RoomProgress.AddKill / SetUnlocked on load before the scene's portals enable.
-        // -----------------------------------------------------------------------------
+        // Persistence: RoomProgress survives scene reloads (static) AND sessions —
+        // SaveManager serializes each room's kills into MasterSaveData and rehydrates it
+        // BeforeSceneLoad, so this portal's RequirementMet check is correct on a cold boot.
 
-        // Debug helper: force-unlock from a context-menu in the Inspector.
+        // Debug helper: force-open from a context-menu in the Inspector. Banks enough
+        // kills in the room to meet this edge's threshold, so it stays open across a
+        // reload (and counts toward any higher-threshold portals in the same room).
         [ContextMenu("Debug: Activate Now")]
-        private void DebugActivate() => Activate(persist: true);
+        private void DebugActivate()
+        {
+            if (resolvedRoomId == null) ResolveFromTree();   // context-menu before Awake
+            if (!isConfigured) return;
+            if (RoomProgress.GetKills(resolvedRoomId) < resolvedRequiredKills)
+                RoomProgress.Restore(resolvedRoomId, resolvedRequiredKills);
+            Activate();
+        }
     }
 }

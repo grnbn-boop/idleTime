@@ -17,6 +17,18 @@ namespace IdleTime.Core
         // session's start time against this.
         public long savedAtUtcTicks;
         public string savedAtUtc;   // human-readable copy for eyeballing the file
+
+        // Per-room kill totals (game-wide, not per-character, so it lives on the master
+        // save). Each portal's unlocked state is DERIVED from these on load — kills are
+        // the single source of truth — so there's no separate unlocked flag to persist.
+        public List<RoomProgressSaveEntry> rooms = new();
+    }
+
+    [Serializable]
+    public class RoomProgressSaveEntry
+    {
+        public string roomId;
+        public int kills;
     }
 
     // ── Character save: one per character ────────────────────────────────────

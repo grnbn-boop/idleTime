@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using IdleTime.Interactions;
 
 namespace IdleTime.Core
 {
@@ -58,6 +59,14 @@ namespace IdleTime.Core
             };
             foreach (var c in pm.Characters)
                 master.characterNames.Add(c.characterName);
+
+            foreach (var roomId in RoomProgress.RoomIds)
+                master.rooms.Add(new RoomProgressSaveEntry
+                {
+                    roomId = roomId,
+                    kills = RoomProgress.GetKills(roomId),
+                });
+
             WriteJson(MasterPath, master);
 
             // The shared Inventory singleton holds the *active* character's items;
@@ -133,6 +142,23 @@ namespace IdleTime.Core
         }
 
         // ── Loading ───────────────────────────────────────────────────────────
+
+        // Restores per-room portal progress into the static RoomProgress store before
+        // the first scene loads — so a portal reads the right kill count / unlocked
+        // state in its OnEnable on a cold boot, with no script-order ambiguity. Runs
+        // once per play session (not on mid-session scene reloads), and clears first so
+        // it's deterministic even when Enter Play Mode domain reload is disabled.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void LoadRoomProgress()
+        {
+            RoomProgress.ResetAll();
+            if (!File.Exists(MasterPath)) return;
+            var master = ReadJson<MasterSaveData>(MasterPath);
+            if (master?.rooms == null) return;
+
+            foreach (var r in master.rooms)
+                RoomProgress.Restore(r.roomId, r.kills);
+        }
 
         // Returns the saved active character index, or -1 if there is no master save.
         public int LoadMasterActiveIndex()
