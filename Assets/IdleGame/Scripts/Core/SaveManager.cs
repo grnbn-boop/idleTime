@@ -129,9 +129,9 @@ namespace IdleTime.Core
                 currentXP = c.currentXP,
                 gold = c.gold,
                 skills = c.skills,
-                // Stub: no activity system yet, so every save records "Idle, as of now".
-                currentActivity = "Idle",
-                activityStartedUtcTicks = DateTime.UtcNow.Ticks,
+                gathering = c.gathering,
+                activity = c.activity,
+                afkClaim = c.afkClaim,
             };
 
             foreach (var pc in c.unlockedClasses)
@@ -232,8 +232,11 @@ namespace IdleTime.Core
             c.currentXP = data.currentXP;
             c.gold = Mathf.Max(0, data.gold);
             if (data.skills != null) c.skills = data.skills;
-            // currentActivity/activityStartedUtcTicks: nothing consumes these yet —
-            // the AFK-gains pass will apply offline progress here on load.
+            if (data.gathering != null) c.gathering = data.gathering;
+            c.activity = data.activity ?? new AfkActivity();
+            c.afkClaim = data.afkClaim ?? new AfkClaim();
+            // Offline gains for the window since the last save are folded into afkClaim
+            // afterwards by ApplyOfflineGains (called once from PlayerManager.Start).
 
             var savedClass = FindClass(data.classId);
             if (savedClass != null)
@@ -282,6 +285,89 @@ namespace IdleTime.Core
             }
         }
 
+        // ── AFK / offline gains ───────────────────────────────────────────────
+
+        // Folds offline progress into every character's claim pile: diffs the master save's
+        // timestamp against now (capped to AfkProgress.MaxOfflineSeconds) and accrues each
+        // character's assigned activity. Called once per session from PlayerManager.Start,
+        // after stats are recomputed (gathering success chance reads STR/WIS). Inactive
+        // characters accrue too — that's the whole point of parking alts on skills.
+        public void ApplyOfflineGains(IReadOnlyList<CharacterData> characters)
+        {
+            if (characters == null || characters.Count == 0) return;
+            if (!File.Exists(MasterPath)) return;          // fresh install — nothing to diff
+
+            var master = ReadJson<MasterSaveData>(MasterPath);
+            if (master == null || master.savedAtUtcTicks <= 0) return;
+
+            double rawSeconds = (DateTime.UtcNow - new DateTime(master.savedAtUtcTicks, DateTimeKind.Utc)).TotalSeconds;
+            double seconds = AfkProgress.ClampWindow(rawSeconds);
+            if (seconds <= 0.0) return;
+
+            int gained = 0;
+            foreach (var c in characters)
+                if (AfkProgress.Accrue(c, seconds)) gained++;
+
+            if (gained > 0)
+                Debug.Log($"[AFK] Accrued {seconds / 3600.0:F2}h of offline gains for {gained} character(s).");
+        }
+
+        // Collects a character's pending pile: banks gold, gathering XP, then items, and
+        // clears the pile. Items go into the live Inventory, so this targets the ACTIVE
+        // character for now (an inactive alt's bag is a file, not the live singleton —
+        // Phase 2). A full bag stops at the first item that won't fit and leaves the rest
+        // in the pile. Returns a short summary, or null if there was nothing to collect.
+        public string CollectClaim(CharacterData c)
+        {
+            if (c?.afkClaim == null || !c.afkClaim.hasPending) return null;
+
+            var claim = c.afkClaim;
+            var gm = GatheringManager.Instance;
+            bool isActive = PlayerManager.Instance != null && PlayerManager.Instance.ActiveCharacter == c;
+
+            int goldClaimed = claim.gold;
+            if (goldClaimed > 0)
+            {
+                if (isActive) PlayerManager.Instance.AddGold(goldClaimed);
+                else c.gold = Mathf.Max(0, c.gold + goldClaimed);
+            }
+            if (claim.characterXp > 0f) c.currentXP += claim.characterXp;
+
+            foreach (var gx in claim.gatherXp)
+                c.gathering.AddXp(gx.skill, gx.xp, gm != null ? gm.GetDefinition(gx.skill) : null);
+
+            int banked = 0;
+            var inv = Inventory.Instance;
+            var leftover = new List<AfkRewardEntry>();
+            foreach (var entry in claim.items)
+            {
+                var item = FindItem(entry.itemId);
+                if (item == null)
+                {
+                    Debug.LogWarning($"[AFK] Unknown item '{entry.itemId}' in {c.characterName}'s claim — dropped.");
+                    continue;
+                }
+                int remaining = entry.count;
+                while (remaining > 0 && inv != null && inv.AddItem(item)) { remaining--; banked++; }
+                if (remaining > 0) leftover.Add(new AfkRewardEntry { itemId = entry.itemId, count = remaining });
+            }
+
+            double hours = claim.secondsAccrued / 3600.0;
+
+            // Gold/XP fully banked; only items can leave a remainder (bag full).
+            claim.gold = 0;
+            claim.characterXp = 0f;
+            claim.gatherXp.Clear();
+            claim.items = leftover;
+            if (leftover.Count == 0) claim.Clear();
+
+            SaveCharacter(c, includeLiveInventory: isActive);
+
+            string summary = $"Collected {banked} item(s) and {goldClaimed} gold from {hours:F1}h AFK.";
+            if (leftover.Count > 0) summary += " Bag full — some items remain in the pile.";
+            return summary;
+        }
+
         // ── Wiping (used by the Save Tools editor window too) ─────────────────
 
         public static void WipeCharacter(string characterName)
@@ -316,6 +402,7 @@ namespace IdleTime.Core
             data.currentXP = 0;
             data.gold = 0;
             data.skills = new SkillRegistry();        // back to starting points, nothing learned
+            data.gathering = new GatheringRegistry(); // gathering levels reset to 1
             data.unlockedClassIds = new List<string>(); // base class is re-added on load via EnsureBaseClassUnlocked
             data.equipment = new List<EquipmentSaveEntry>();
             data.inventory = new List<InventorySaveEntry>();

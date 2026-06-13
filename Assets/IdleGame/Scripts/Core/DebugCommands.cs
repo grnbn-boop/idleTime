@@ -27,6 +27,9 @@ namespace IdleTime.Core
         [Tooltip("Dumps the live visual state of every inventory + equipment slot (why an icon won't draw).")]
         [SerializeField] Key dumpVisualsKey = Key.F6;
 
+        [Tooltip("Collects the active character's pending AFK/offline pile (placeholder for the claim UI).")]
+        [SerializeField] Key collectAfkKey = Key.F5;
+
         [Header("Force-equip set")]
         [Tooltip("Items slammed straight into their slots by the force-equip command. " +
                  "Assign one item per equip slot you want to test.")]
@@ -48,6 +51,22 @@ namespace IdleTime.Core
             if (kb[flushEquipmentKey].wasPressedThisFrame) FlushEquipment();
             if (kb[forceEquipKey].wasPressedThisFrame)      ForceEquipTestGear();
             if (kb[dumpVisualsKey].wasPressedThisFrame)     DumpSlotVisuals();
+            if (kb[collectAfkKey].wasPressedThisFrame)      CollectAfkClaim();
+        }
+
+        // ── AFK / offline gains ───────────────────────────────────────────────
+
+        // Placeholder for the eventual "while you were away" claim screen: banks the
+        // active character's pending offline pile into the live bag/gold/skill XP.
+        [ContextMenu("Collect AFK Claim")]
+        public void CollectAfkClaim()
+        {
+            var character = ActiveCharacterOrWarn();
+            if (character == null) return;
+            if (SaveManager.Instance == null) { Debug.LogWarning("[Debug] No SaveManager in scene."); return; }
+
+            string summary = SaveManager.Instance.CollectClaim(character);
+            Debug.Log(summary != null ? $"[Debug][AFK] {summary}" : "[Debug][AFK] Nothing pending to collect.");
         }
 
         // ── Diagnostics ───────────────────────────────────────────────────────

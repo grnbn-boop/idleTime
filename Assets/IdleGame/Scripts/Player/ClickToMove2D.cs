@@ -782,22 +782,32 @@ namespace IdleTime.Player
         // the bottom edge began below that surface, shot downward, missed it entirely, and
         // fell back to the buried bottom edge — planting the feet inside the ground. Casting
         // from bottomSurfaceProbe above guarantees we begin over the floor regardless of how
-        // deep the ladder embeds; the nearest upward-facing terrain hit is the stand surface.
+        // deep the ladder embeds; then choose the surface closest to the ladder base.
         private float BottomStandY()
         {
             Vector2 origin = new Vector2(ladderColumnX, ladderBottomEdgeY + bottomSurfaceProbe);
             float dist = bottomSurfaceProbe + 1.5f;
             int hitCount = Physics2D.Raycast(origin, Vector2.down, terrainFilter, castHits, dist);
+            bool found = false;
+            float bestSurfaceY = ladderBottomEdgeY;
+            float bestDelta = float.MaxValue;
             for (int i = 0; i < hitCount; i++)
             {
-                // Nearest-first, so the first valid upward-facing hit is the topmost surface
-                // along the column near the base — the floor the ladder sits on.
+                // A down-ladder can have another platform above its base. Use the surface
+                // closest to the ladder bottom edge, not the first/highest raycast hit.
                 if (!IsOwnCollider(castHits[i].collider) && castHits[i].normal.y > 0.5f)
                 {
-                    return castHits[i].point.y + FeetToCenter;
+                    float surfaceY = castHits[i].point.y;
+                    float delta = Mathf.Abs(surfaceY - ladderBottomEdgeY);
+                    if (delta < bestDelta)
+                    {
+                        found = true;
+                        bestDelta = delta;
+                        bestSurfaceY = surfaceY;
+                    }
                 }
             }
-            return ladderBottomEdgeY + FeetToCenter;
+            return (found ? bestSurfaceY : ladderBottomEdgeY) + FeetToCenter;
         }
 
         // Drives the player while in climb mode. Far from the column we reuse the normal

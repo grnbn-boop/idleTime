@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 7830964365650129543}
   - component: {fileID: 5558661469050105091}
   - component: {fileID: 3795925711039778570}
+  - component: {fileID: 4874671071576890230}
   m_Layer: 6
   m_Name: Player
   m_TagString: Player
@@ -111,7 +112,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 4
   stopDistance: 0.05
-  jumpHeight: 1
+  jumpHeight: 1.5
   gravity: 18
   terrainMask:
     serializedVersion: 2
@@ -263,6 +264,29 @@ MonoBehaviour:
   worldCamera: {fileID: 0}
   autoAttack: 0
   autoScanInterval: 0.25
+--- !u!114 &4874671071576890230
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1598634813170940965}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9c29fe37ea0b3e42975130ebb2e1f56, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IdleTime.Player.GatheringController
+  movement: {fileID: 0}
+  attack: {fileID: 0}
+  worldCamera: {fileID: 0}
+  headIcon: {fileID: 0}
+  headIconOffset: {x: 0, y: 1.7}
+  headIconBobHeight: 0.15
+  headIconBobSpeed: 3
+  bodyVfx: {fileID: 0}
+  bodyVfxOffset: {x: 0.4, y: 0.2}
+  vfxFlashDuration: 0.25
+  vfxSortingOrder: 100
 --- !u!1 &9164470416223850074
 GameObject:
   m_ObjectHideFlags: 0

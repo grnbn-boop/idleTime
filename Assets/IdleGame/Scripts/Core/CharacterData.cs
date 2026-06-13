@@ -27,8 +27,17 @@ namespace IdleTime.Core
         // Per-character skill state
         public SkillRegistry skills = new();
 
+        // Per-character gathering progress (Woodcutting/Mining/Crafting levels + XP).
+        // Independent of the ability skills above — see GatheringManager.
+        public GatheringRegistry gathering = new();
+
         // Per-character equipped gear
         public EquipmentSlots equipment = new();
+
+        // What this character does while the game is closed, and the pile of offline gains
+        // waiting to be collected. Accrued on load by SaveManager — see AfkSystem.cs.
+        public AfkActivity activity = new();
+        public AfkClaim afkClaim = new();
 
         // ── Skill bonuses (recomputed by SkillManager whenever skills change) ───
 

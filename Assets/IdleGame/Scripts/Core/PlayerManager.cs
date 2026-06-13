@@ -56,6 +56,9 @@ namespace IdleTime.Core
                 c.ResetVitals();               // fill HP/MP from the now-correct maxima
             }
 
+            // Accrue offline gains now that stats are valid (gathering chance reads STR/WIS).
+            save?.ApplyOfflineGains(characters);
+
             OnActiveCharacterChanged?.Invoke();
         }
 

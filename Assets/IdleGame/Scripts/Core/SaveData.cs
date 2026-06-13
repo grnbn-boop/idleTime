@@ -50,17 +50,19 @@ namespace IdleTime.Core
         public float currentXP;
         public int gold;
 
-        // Activity stub — no activity system exists yet. When AFK gains land,
-        // these record what the character was doing and since when, so offline
-        // progress can be computed on load.
-        public string currentActivity = "Idle";
-        public long activityStartedUtcTicks;
+        // AFK state: the character's assigned offline activity and the pending pile of
+        // gains accrued while the game was closed (filled on load — see AfkSystem.cs).
+        public AfkActivity activity = new();
+        public AfkClaim afkClaim = new();
 
         public List<string> unlockedClassIds = new();
 
         // SkillRegistry is already save-shaped: a string-keyed list of
         // (skillId, level) plus unspent points, so it embeds directly.
         public SkillRegistry skills = new();
+
+        // GatheringRegistry is likewise save-shaped (a per-skill list of level + XP).
+        public GatheringRegistry gathering = new();
 
         public List<EquipmentSaveEntry> equipment = new();
         public List<InventorySaveEntry> inventory = new();
