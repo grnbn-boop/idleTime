@@ -34,6 +34,15 @@ namespace IdleTime.UI
         const string PointerSpriteAssetPath = "Assets/IdleGame/Art/UI/Icons.png";
         const string PointerSpriteName = "pointer";
 
+        [Header("Master Switches")]
+        [Tooltip("Untick to fully disable the HUD: canvas off + raycaster off, so it cannot " +
+                 "render or catch any clicks. Toggleable live in Play Mode to prove it isn't interfering.")]
+        [SerializeField] bool hudEnabled = true;
+
+        [Tooltip("Untick to keep the direction arrows visible but stop their buttons from catching " +
+                 "clicks — isolates whether the HUD's GraphicRaycaster is stealing input from other UI.")]
+        [SerializeField] bool buttonsCatchClicks = true;
+
         [Header("Tracking")]
         [Tooltip("Camera the indicator projects through. Falls back to Camera.main.")]
         [SerializeField] Camera worldCamera;
@@ -65,6 +74,8 @@ namespace IdleTime.UI
         [SerializeField] int visibleIndicatorCount;
 
         RectTransform container;
+        Canvas canvas;
+        GraphicRaycaster raycaster;
         readonly Dictionary<PortalController, Indicator> buttons = new();
         ClickToMove2D player;
         Camera cam;
@@ -91,9 +102,30 @@ namespace IdleTime.UI
 
         static void EnsureSceneHud()
         {
-            if (FindAnyObjectByType<PortalNavHUD>() != null) return;
+            // Include inactive so a hand-placed-but-disabled HUD GameObject suppresses the
+            // auto-spawn — otherwise unticking a placed instance would just get a fresh
+            // active one created here, and you could never turn the HUD off.
+            if (FindObjectsByType<PortalNavHUD>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length > 0) return;
             new GameObject("Portal Nav HUD").AddComponent<PortalNavHUD>();
         }
+
+#if UNITY_EDITOR
+        // Drop a real, inspectable HUD GameObject into the open scene so its toggles can be
+        // flipped by hand. With one present, the runtime bootstrap above won't spawn another.
+        [MenuItem("IdleTime/Add Portal Nav HUD To Scene")]
+        static void AddToScene()
+        {
+            if (FindObjectsByType<PortalNavHUD>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length > 0)
+            {
+                Debug.Log("[PortalNavHUD] Scene already contains a Portal Nav HUD.");
+                return;
+            }
+            var go = new GameObject("Portal Nav HUD");
+            go.AddComponent<PortalNavHUD>();
+            Undo.RegisterCreatedObjectUndo(go, "Add Portal Nav HUD");
+            Selection.activeGameObject = go;
+        }
+#endif
 
         void Awake() => Build();
 
@@ -108,10 +140,28 @@ namespace IdleTime.UI
             PortalController.OnPortalActivated -= HandlePortalActivated;
         }
 
+        // Push the master toggles onto the built canvas. Disabling the Canvas hides the
+        // whole HUD and stops it rendering; disabling the GraphicRaycaster stops its
+        // buttons catching clicks while leaving the arrows visible. Cheap to call each
+        // frame, and OnValidate routes inspector edits here live during Play Mode.
+        void ApplySwitches()
+        {
+            if (canvas != null) canvas.enabled = hudEnabled;
+            if (raycaster != null) raycaster.enabled = hudEnabled && buttonsCatchClicks;
+        }
+
+        void OnValidate()
+        {
+            if (Application.isPlaying) ApplySwitches();
+        }
+
         // Position after the camera has settled for the frame (CameraFollow2D moves in
         // LateUpdate; a one-frame lag on an indicator is imperceptible).
         void LateUpdate()
         {
+            ApplySwitches();
+            if (!hudEnabled) return;   // master off: don't position or rescan
+
             Camera viewCamera = ResolveCamera();
             trackedPortalCount = buttons.Count;
             visibleIndicatorCount = 0;
@@ -241,11 +291,13 @@ namespace IdleTime.UI
         {
             var canvasGO = new GameObject("PortalNavCanvas");
             canvasGO.transform.SetParent(transform, false);
-            var canvas = canvasGO.AddComponent<Canvas>();
+            canvas = canvasGO.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = sortingOrder;
             canvasGO.AddComponent<CanvasScaler>();
-            canvasGO.AddComponent<GraphicRaycaster>();   // buttons need their own raycaster
+            raycaster = canvasGO.AddComponent<GraphicRaycaster>();   // buttons need their own raycaster
+
+            ApplySwitches();
 
             // Full-screen container; buttons are positioned manually in screen space.
             var containerGO = new GameObject("Portals", typeof(RectTransform));

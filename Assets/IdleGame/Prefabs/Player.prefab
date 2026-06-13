@@ -111,26 +111,42 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 4
   stopDistance: 0.05
-  jumpHeight: 1.5
+  jumpHeight: 1
   gravity: 18
   terrainMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 1
   groundSensorOffset: {x: 0, y: -0.66}
   groundSensorSize: {x: 0.4, y: 0.08}
   groundCheckDistance: 0.08
   wallSensorOffset: {x: 0.46, y: -0.3}
   wallSensorSize: {x: 0.08, y: 0.56}
   wallCheckDistance: 0.08
+  maxHopDistance: 2
+  gapProbeAhead: 0.55
+  gapProbeDepth: 0.35
   wallJumpPreparationDuration: 0.12
   wallJumpHorizontalDelay: 0.08
-  groundClickProjectionHeight: 4
   landingPulseDuration: 0.08
   landingLagDuration: 0.18
   groundTilemap: {fileID: 0}
   worldCamera: {fileID: 0}
   flipSpriteToDirection: 1
+  ladderTilemap: {fileID: 0}
+  climbSpeed: 3
+  climbApproachDistance: 1.5
+  climbSnapSpeed: 14
+  climbStopDistance: 0.04
+  climbTopDuration: 0.35
+  topSurfaceProbe: 2
+  bottomSurfaceProbe: 2
+  topStandYOffset: 0
+  climbEngageVerticalSlack: 0.5
   invincibilityDuration: 0.8
+  logWalkFrames: 0
+  logWalkFramesKey: 98
+  drawClimbGizmos: 1
+  drawNavGizmos: 1
   normieTint: {r: 1, g: 1, b: 1, a: 1}
   fighterTint: {r: 1, g: 0, b: 0, a: 1}
   wizardTint: {r: 0.55, g: 0.15, b: 1, a: 1}

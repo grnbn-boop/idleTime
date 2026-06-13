@@ -128,21 +128,51 @@ namespace IdleTime.CameraRig
         }
 
 #if UNITY_EDITOR
-        // Yellow = dead-zone, cyan = world bounds. Visible when the camera is selected.
+        // World bounds = the room rectangle. Drawn ALWAYS (not just when the camera is
+        // selected) so it's easy to size up against the level — cyan + translucent fill when
+        // active, dim grey when useBounds is off so you can still author it before enabling.
+        private void OnDrawGizmos()
+        {
+            Vector3 size = new Vector3(boundsMax.x - boundsMin.x, boundsMax.y - boundsMin.y, 0f);
+            Vector3 mid = new Vector3((boundsMin.x + boundsMax.x) * 0.5f, (boundsMin.y + boundsMax.y) * 0.5f, 0f);
+
+            Color edge = useBounds ? Color.cyan : new Color(0.5f, 0.5f, 0.5f, 0.6f);
+            Gizmos.color = new Color(edge.r, edge.g, edge.b, 0.08f);
+            Gizmos.DrawCube(mid, size);
+            Gizmos.color = edge;
+            Gizmos.DrawWireCube(mid, size);
+
+            // Corner ticks so the exact extents read clearly even against busy tile art.
+            float tick = Mathf.Min(size.x, size.y) * 0.06f;
+            DrawCornerTicks(mid, size, tick);
+
+            UnityEditor.Handles.color = edge;
+            UnityEditor.Handles.Label(new Vector3(boundsMin.x, boundsMax.y + 0.3f, 0f),
+                useBounds ? "Room bounds" : "Room bounds (disabled)");
+        }
+
+        private static void DrawCornerTicks(Vector3 mid, Vector3 size, float t)
+        {
+            float l = mid.x - size.x * 0.5f, r = mid.x + size.x * 0.5f;
+            float b = mid.y - size.y * 0.5f, u = mid.y + size.y * 0.5f;
+            // Each corner: a short horizontal + vertical stub pointing inward.
+            Gizmos.DrawLine(new Vector3(l, u, 0f), new Vector3(l + t, u, 0f));
+            Gizmos.DrawLine(new Vector3(l, u, 0f), new Vector3(l, u - t, 0f));
+            Gizmos.DrawLine(new Vector3(r, u, 0f), new Vector3(r - t, u, 0f));
+            Gizmos.DrawLine(new Vector3(r, u, 0f), new Vector3(r, u - t, 0f));
+            Gizmos.DrawLine(new Vector3(l, b, 0f), new Vector3(l + t, b, 0f));
+            Gizmos.DrawLine(new Vector3(l, b, 0f), new Vector3(l, b + t, 0f));
+            Gizmos.DrawLine(new Vector3(r, b, 0f), new Vector3(r - t, b, 0f));
+            Gizmos.DrawLine(new Vector3(r, b, 0f), new Vector3(r, b + t, 0f));
+        }
+
+        // Dead-zone (yellow) only clutters the view while tuning, so keep it selection-only.
         private void OnDrawGizmosSelected()
         {
             Vector3 c = transform.position;
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireCube(new Vector3(c.x, c.y, 0f),
                 new Vector3(horizontalDeadzone * 2f, verticalDeadzone * 2f, 0f));
-
-            if (useBounds)
-            {
-                Gizmos.color = Color.cyan;
-                Vector3 size = new Vector3(boundsMax.x - boundsMin.x, boundsMax.y - boundsMin.y, 0f);
-                Vector3 mid = new Vector3((boundsMin.x + boundsMax.x) * 0.5f, (boundsMin.y + boundsMax.y) * 0.5f, 0f);
-                Gizmos.DrawWireCube(mid, size);
-            }
         }
 #endif
     }

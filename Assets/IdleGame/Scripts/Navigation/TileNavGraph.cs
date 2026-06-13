@@ -23,7 +23,9 @@ namespace IdleTime.Navigation
     // assumptions can be eyeballed before trusting the routing.
     public sealed class TileNavGraph : MonoBehaviour
     {
-        [Tooltip("Layers whose tilemaps count as solid ground/walkable surfaces.")]
+        [Tooltip("Layers whose tilemaps count as solid ground/walkable surfaces. Set this to ONLY the " +
+                 "solid Terrain layer(s) — keep decorative/background layers (e.g. Secondary) OUT, or their " +
+                 "tiles become phantom walkable ground. The Ladder layer is auto-excluded in code.")]
         [SerializeField] private LayerMask terrainMask = ~0;
         [Tooltip("Ladder tilemap. Auto-found by the 'Ladder' layer if left empty.")]
         [SerializeField] private Tilemap ladderTilemap;
@@ -108,15 +110,19 @@ namespace IdleTime.Navigation
                     : new NavStep { Type = edge.Type, World = grid.GetCellCenterWorld(to) });
             }
 
-            // Collapse runs of ground locomotion into one waypoint each. The graph emits
-            // a leg per tile; without this the player stops/starts every cell, which
-            // stutters the walk animation. Climb legs stay as boundaries (auto-hop still
-            // handles any gap inside a merged Walk leg).
+            // Collapse runs of FLAT walking into one waypoint each. The graph emits a leg
+            // per tile; without this the player stops/starts every cell, which stutters the
+            // walk animation. Walk edges only ever join adjacent stand cells at the same
+            // height, so merging Walk→Walk is always a straight, level run the locomotion
+            // can follow. Hops and climbs stay as their own waypoints: a Hop changes
+            // elevation (±1 level, and several can chain up a slope), so folding it into a
+            // Walk produced a single diagonal leg from a low start to a high end — the
+            // locomotion can't gain that height as a "walk", so it stalled at the ledge.
+            // Keeping each hop/climb as a boundary makes the route hug the terrain instead.
             for (int i = result.Count - 1; i > 0; i--)
             {
-                if (!IsGroundLeg(result[i].Type) || !IsGroundLeg(result[i - 1].Type)) continue;
+                if (result[i].Type != NavMoveType.Walk || result[i - 1].Type != NavMoveType.Walk) continue;
                 NavStep merged = result[i - 1];
-                merged.Type = NavMoveType.Walk;
                 merged.World = result[i].World;   // extend to the farther point
                 result[i - 1] = merged;
                 result.RemoveAt(i);
@@ -184,8 +190,6 @@ namespace IdleTime.Navigation
             return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
         }
 
-        private static bool IsGroundLeg(NavMoveType type) => type == NavMoveType.Walk || type == NavMoveType.Hop;
-
         // ── Graph construction ─────────────────────────────────────────────────────
 
         private void Build()
@@ -211,9 +215,25 @@ namespace IdleTime.Navigation
 
         private void CollectGroundCells()
         {
-            foreach (Tilemap tilemap in FindObjectsByType<Tilemap>(FindObjectsSortMode.None))
+            int ladderLayer = LayerMask.NameToLayer("Ladder");
+
+            foreach (Tilemap tilemap in FindObjectsByType<Tilemap>(FindObjectsInactive.Exclude))
             {
+                // Ladders are climb edges, never ground — exclude them here regardless of
+                // the mask, so a terrainMask left on "Everything" can't turn a ladder column
+                // into phantom walkable stand cells. BuildLadderEdges handles ladders.
+                if (tilemap == ladderTilemap) continue;
+                if (ladderLayer >= 0 && tilemap.gameObject.layer == ladderLayer) continue;
+
                 if (((terrainMask.value >> tilemap.gameObject.layer) & 1) == 0) continue;
+
+                // Only count tilemaps the player actually COLLIDES with as ground. Decorative
+                // layers (signs, bushes, background) have tiles but no solid collider — the
+                // player walks straight through them — so without this check the graph turned
+                // them into phantom stand cells and routed onto/around them (e.g. the sign).
+                // A non-trigger Collider2D on the tilemap is what the player's casts hit.
+                if (!tilemap.TryGetComponent(out Collider2D solid) || solid.isTrigger) continue;
+
                 if (grid == null) grid = tilemap.GetComponentInParent<Grid>();
 
                 BoundsInt bounds = tilemap.cellBounds;
@@ -319,21 +339,34 @@ namespace IdleTime.Navigation
 
         private bool TryFindAccessAbove(int x, int yTop, out Vector3Int access)
         {
+            // Look at and above the ladder top for the nearest platform stand cell. Check
+            // the ladder column first, then the columns either side — a ladder commonly
+            // rises THROUGH a gap in the platform, so the cell you mount onto sits beside
+            // the column, not on it. (Ladder tiles are no longer ground, so there's no
+            // stand cell on the column itself to lean on anymore.)
             for (int k = -1; k <= maxLadderAccessScan; k++)
-            {
-                Vector3Int c = new Vector3Int(x, yTop + k, 0);
-                if (standCells.Contains(c)) { access = c; return true; }
-            }
+                if (TryStandCellNearColumn(x, yTop + k, out access)) return true;
             access = default;
             return false;
         }
 
         private bool TryFindAccessBelow(int x, int yBottom, out Vector3Int access)
         {
-            for (int k = 1; k <= maxLadderAccessScan; k++)
+            // Same column-then-sides logic at the ladder base. Starts at k=0 so a stand
+            // cell on the floor at the very bottom of the ladder still counts.
+            for (int k = 0; k <= maxLadderAccessScan; k++)
+                if (TryStandCellNearColumn(x, yBottom - k, out access)) return true;
+            access = default;
+            return false;
+        }
+
+        // The ladder column first, then x-1 / x+1 at the same row.
+        private bool TryStandCellNearColumn(int x, int y, out Vector3Int access)
+        {
+            foreach (int dx in new[] { 0, -1, 1 })
             {
-                Vector3Int c = new Vector3Int(x, yBottom - k, 0);
-                if (standCells.Contains(c)) { access = c; return true; }
+                access = new Vector3Int(x + dx, y, 0);
+                if (standCells.Contains(access)) return true;
             }
             access = default;
             return false;
@@ -378,7 +411,7 @@ namespace IdleTime.Navigation
         {
             int ladderLayer = LayerMask.NameToLayer("Ladder");
             if (ladderLayer < 0) return null;
-            foreach (Tilemap tilemap in FindObjectsByType<Tilemap>(FindObjectsSortMode.None))
+            foreach (Tilemap tilemap in FindObjectsByType<Tilemap>(FindObjectsInactive.Exclude))
                 if (tilemap.gameObject.layer == ladderLayer) return tilemap;
             return null;
         }

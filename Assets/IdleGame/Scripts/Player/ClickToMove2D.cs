@@ -32,7 +32,6 @@ namespace IdleTime.Player
         [SerializeField] private float gapProbeDepth = 0.35f;
         [SerializeField] private float wallJumpPreparationDuration = 0.12f;
         [SerializeField] private float wallJumpHorizontalDelay = 0.08f;
-        [SerializeField] private float groundClickProjectionHeight = 4f;
         [SerializeField] private float landingPulseDuration = 0.08f;
         [SerializeField] private float landingLagDuration = 0.18f;
         [SerializeField] private Tilemap groundTilemap;
@@ -53,8 +52,12 @@ namespace IdleTime.Player
         [SerializeField] private float climbTopDuration = 0.35f;
         [Tooltip("How far above the ladder's top tile to start probing for the platform surface the player tops onto. Should comfortably clear the platform (a couple of tiles).")]
         [SerializeField] private float topSurfaceProbe = 2f;
+        [Tooltip("How far above the ladder's BOTTOM tile to start probing for the floor the player dismounts onto. Must exceed how deep the ladder's bottom tiles embed into the floor, or the probe starts below the surface and the player sinks into the ground on dismount.")]
+        [SerializeField] private float bottomSurfaceProbe = 2f;
         [Tooltip("Fine-tune the top-out height. Negative seats the player lower (use ~-0.5 = half a tile if they finish floating above the platform). Watch the orange gizmo line — that's where the feet land.")]
         [SerializeField] private float topStandYOffset = 0f;
+        [Tooltip("Slack (world units) added above/below the ladder's stand range when deciding the climb has taken hold. Keep small — this is the only thing that lets the body engage the column despite tiny float-point or animation overshoot. Too large reintroduces the 'float onto the ladder from a ledge that's merely near the column' bug.")]
+        [SerializeField] private float climbEngageVerticalSlack = 0.5f;
 
         private SpriteRenderer spriteRenderer;
         private Rigidbody2D body;
@@ -74,6 +77,8 @@ namespace IdleTime.Player
         [SerializeField] private Key logWalkFramesKey = Key.F5;
         [Tooltip("While climbing, draw the ladder probe rays + target heights. Enable Gizmos in the Game view (or watch the Scene view in Play mode) to see them.")]
         [SerializeField] private bool drawClimbGizmos = true;
+        [Tooltip("Draw the route the player picked on the last click — each leg's waypoint + type (grey=walk, yellow=hop, cyan=climb), with the current leg highlighted. A plain same-level walk shows as a single magenta line to the target.")]
+        [SerializeField] private bool drawNavGizmos = true;
 
         [Header("Class Tint")]
         [SerializeField] private Color normieTint = Color.white;
@@ -97,6 +102,7 @@ namespace IdleTime.Player
         private bool isPreparingWallJump;
         private float wallJumpPreparationTimer;
         private float wallJumpHorizontalDelayTimer;
+        private bool wallJumpAttempted;   // already wall-jumped at the current obstacle; used to give up on unclearable walls
         private float horizontalVelocity;
 
         private float knockbackVelocityX;
@@ -126,6 +132,8 @@ namespace IdleTime.Player
         private float mountTimer;
         private float mountFromY;
         private float mountToY;
+        private float mountFromX;           // column X the lift starts at
+        private float mountToX;             // solid-platform X to deposit on (a ladder through a gap tops out beside the column, not over it)
 
         private bool hasPostClimbWalk;     // after dismounting, walk to where the player clicked
         private float postClimbWalkX;
@@ -260,6 +268,54 @@ namespace IdleTime.Player
             Debug.DrawLine(new Vector3(body.position.x - 0.3f, feetY, 0f), new Vector3(body.position.x + 0.3f, feetY, 0f), Color.red);
         }
 
+        // Visualises the route chosen on the last click so the picked path is debuggable.
+        //   grey   — walk leg          yellow — hop leg          cyan — climb leg
+        //   dim    — leg already done  green  — line to the leg currently being executed
+        //   magenta — a plain same-level walk (no multi-leg route)
+        // Waypoint spheres mark each leg end; the current leg's sphere is enlarged.
+        private void OnDrawGizmos()
+        {
+            if (!drawNavGizmos || !Application.isPlaying) return;
+
+            if (navActive && navPath.Count > 0)
+            {
+                for (int i = 0; i < navPath.Count; i++)
+                {
+                    Vector3 p = navPath[i].World;
+                    Gizmos.color = LegColor(navPath[i].Type, i < navIndex);
+                    if (i > 0) Gizmos.DrawLine((Vector3)navPath[i - 1].World, p);
+                    Gizmos.DrawWireSphere(p, i == navIndex ? 0.18f : 0.1f);
+                }
+
+                if (navIndex < navPath.Count)
+                {
+                    Gizmos.color = Color.green;
+                    Gizmos.DrawLine(transform.position, navPath[navIndex].World);
+                }
+                return;
+            }
+
+            if (hasTarget)
+            {
+                Gizmos.color = Color.magenta;
+                Vector3 to = new Vector3(targetX, transform.position.y, 0f);
+                Gizmos.DrawLine(transform.position, to);
+                Gizmos.DrawWireSphere(to, 0.15f);
+            }
+        }
+
+        private static Color LegColor(NavMoveType type, bool done)
+        {
+            Color c = type switch
+            {
+                NavMoveType.Hop => Color.yellow,
+                NavMoveType.ClimbUp or NavMoveType.ClimbDown => Color.cyan,
+                _ => new Color(0.6f, 0.6f, 0.6f, 1f),
+            };
+            if (done) c.a = 0.25f;
+            return c;
+        }
+
         // Reads the animator AFTER it has evaluated this frame, so the logged frame is
         // what's actually on screen. Distinguishes a position wiggle (clean monotonic
         // normalizedTime, jumpy dX) from a real animation skip/replay (normalizedTime
@@ -352,6 +408,7 @@ namespace IdleTime.Player
         {
             targetX = worldX;
             hasTarget = true;
+            wallJumpAttempted = false;   // a fresh command re-attempts even at the same wall
             if (flipSpriteToDirection && spriteRenderer != null)
                 spriteRenderer.flipX = targetX < transform.position.x;
         }
@@ -426,11 +483,16 @@ namespace IdleTime.Player
                 return;
             }
 
-            // Clicking the ground while on the ladder: drive up or down depending on
-            // whether the destination is above or below, then walk there on dismount.
+            // Clicking the ground while on the ladder: drive up or down depending on whether
+            // the destination is above or below the player's FEET, then walk there on
+            // dismount. Comparing against the body CENTER biased the test by ~FeetToCenter
+            // (~0.7), so clicking a platform near the player's own level — e.g. a spot to the
+            // side while climbing up — read as "below" and sent the climb back DOWN, stalling
+            // the player on the ladder instead of topping out and walking off.
             if (climbing && TryGetClickedGround(worldPosition, out Vector2 climbGround))
             {
-                bool goUp = climbGround.y > body.position.y;
+                float feetY = body.position.y - FeetToCenter;
+                bool goUp = climbGround.y > feetY;
                 RetargetClimbToEnd(goUp ? ClimbExit.Top : ClimbExit.Bottom, climbGround.x);
                 return;
             }
@@ -448,12 +510,14 @@ namespace IdleTime.Player
             {
                 navActive = true;
                 navIndex = 0;
+                if (drawNavGizmos) LogNavPath(groundPoint);
                 BeginNavStep();
                 return;
             }
 
             targetX = groundPoint.x;
             hasTarget = true;
+            wallJumpAttempted = false;   // a fresh click re-attempts even at the same wall
 
             if (flipSpriteToDirection && spriteRenderer != null)
             {
@@ -509,15 +573,29 @@ namespace IdleTime.Player
             {
                 if (isGrounded)
                 {
+                    // Back on the ground still blocked by a wall we already wall-jumped
+                    // against → it's taller than the jump and we can't clear it. Abandon
+                    // the target instead of bouncing in place forever.
+                    if (wallJumpAttempted)
+                    {
+                        hasTarget = false;
+                        wallJumpAttempted = false;
+                        isPreparingWallJump = false;
+                        return 0f;
+                    }
+
                     isPreparingWallJump = true;
                     wallJumpPreparationTimer = wallJumpPreparationDuration;
+                    wallJumpAttempted = true;
                     return 0f;
                 }
 
-                if (verticalVelocity <= 0f)
-                {
-                    return 0f;
-                }
+                // Airborne with a wall in front: block horizontal travel whether rising
+                // OR falling. The player slides straight up the wall face and only carries
+                // over the top once the sensor has cleared the wall — i.e. they've actually
+                // out-jumped it. (Previously horizontal continued while rising, which let
+                // the body phase through the wall before clearing its top.)
+                return 0f;
             }
 
             // Auto-hop a small gap: at a ledge with no ground underfoot ahead but solid
@@ -527,6 +605,10 @@ namespace IdleTime.Player
             {
                 StartJump();
             }
+
+            // Reached here = not blocked by a wall this frame (no wall ahead, or we've
+            // cleared its top and are carrying over). Any prior wall-jump is resolved.
+            wallJumpAttempted = false;
 
             // DEX scales movement speed (StatFormulas.MoveSpeedMultiplier); ×1 if no active character.
             float speed = moveSpeed * (PlayerManager.Instance?.ActiveCharacter?.MoveSpeedMultiplier ?? 1f);
@@ -605,6 +687,33 @@ namespace IdleTime.Player
 
             // Face the ladder so the walk-to-base doesn't moonwalk when clicked from behind.
             FaceDirection(ladderColumnX);
+
+            if (drawNavGizmos)
+                Debug.Log($"[Climb] begin @cell{cell} world{worldPosition} exit={climbExit} " +
+                          $"colX={ladderColumnX:F2} top={ladderTopEdgeY:F2} bot={ladderBottomEdgeY:F2} " +
+                          $"targetY={climbTargetY:F2} clickedTop={clickedTopCell} clickedBot={clickedBottomCell} " +
+                          $"pos={body.position} nav={navActive}/{navIndex}");
+        }
+
+        // Enter climb mode with the exit decided by the caller (a nav ClimbUp/ClimbDown leg),
+        // rather than inferred from the grab cell. Top climbs to the column's physical top and
+        // mounts onto the platform; Bottom climbs to the base and steps off. Used for routed
+        // climbs where the grab cell may sit mid-column (continuous ladders through platforms).
+        private void BeginClimbToExit(Vector2 ladderWorld, ClimbExit exit)
+        {
+            Vector3Int cell = ladderTilemap.WorldToCell(ladderWorld);
+            ResolveLadderColumn(cell);
+
+            SetClimbExit(exit);   // Top → TopStandY (column top); Bottom → BottomStandY (base)
+
+            climbing = true;
+            mounting = false;
+            hasTarget = false;   // climb logic owns movement now
+            FaceDirection(ladderColumnX);
+
+            if (drawNavGizmos)
+                Debug.Log($"[Climb] begin(nav) exit={exit} colX={ladderColumnX:F2} top={ladderTopEdgeY:F2} " +
+                          $"bot={ladderBottomEdgeY:F2} targetY={climbTargetY:F2} pos={body.position} nav={navActive}/{navIndex}");
         }
 
         // Retarget an in-progress climb toward an end because the player clicked ground
@@ -666,20 +775,29 @@ namespace IdleTime.Player
         // Body-center Y at which the player stands with feet on the floor at the BOTTOM
         // of the ladder. Same idea as TopStandY: find the real surface under the ladder
         // base so a descent ends standing on the ground rather than clipping into it.
+        //
+        // The probe starts WELL ABOVE the ladder's bottom edge, not just over it. Ladders
+        // are routinely drawn with their bottom tiles embedded down into the floor, so the
+        // floor's top surface sits above ladderBottomEdgeY. A ray that started just above
+        // the bottom edge began below that surface, shot downward, missed it entirely, and
+        // fell back to the buried bottom edge — planting the feet inside the ground. Casting
+        // from bottomSurfaceProbe above guarantees we begin over the floor regardless of how
+        // deep the ladder embeds; the nearest upward-facing terrain hit is the stand surface.
         private float BottomStandY()
         {
-            float surfaceY = ladderBottomEdgeY;
-            Vector2 origin = new Vector2(ladderColumnX, ladderBottomEdgeY + 0.5f);
-            int hitCount = Physics2D.Raycast(origin, Vector2.down, terrainFilter, castHits, 1.5f);
+            Vector2 origin = new Vector2(ladderColumnX, ladderBottomEdgeY + bottomSurfaceProbe);
+            float dist = bottomSurfaceProbe + 1.5f;
+            int hitCount = Physics2D.Raycast(origin, Vector2.down, terrainFilter, castHits, dist);
             for (int i = 0; i < hitCount; i++)
             {
+                // Nearest-first, so the first valid upward-facing hit is the topmost surface
+                // along the column near the base — the floor the ladder sits on.
                 if (!IsOwnCollider(castHits[i].collider) && castHits[i].normal.y > 0.5f)
                 {
-                    surfaceY = castHits[i].point.y;
-                    break;
+                    return castHits[i].point.y + FeetToCenter;
                 }
             }
-            return surfaceY + FeetToCenter;
+            return ladderBottomEdgeY + FeetToCenter;
         }
 
         // Drives the player while in climb mode. Far from the column we reuse the normal
@@ -693,7 +811,25 @@ namespace IdleTime.Player
                 return;
             }
 
-            climbNear = Mathf.Abs(position.x - ladderColumnX) <= climbApproachDistance;
+            // The climb only takes over (gravity off + vertical tracking) when the body is
+            // BOTH horizontally near the column AND actually alongside the ladder's vertical
+            // span. Horizontal proximity alone used to be enough, which let the player float
+            // up/down through empty air whenever they were merely near the column but above
+            // the top or below the base — and made the bottom dismount engage/disengage at
+            // random depending on which side of the X threshold they crossed first.
+            // Dropped below the ladder base with the climb still active: IsWithinClimbSpan
+            // can never be true below the base, so the !climbNear branch below would hold the
+            // player in a perpetual fall toward the column — and because `climbing` stays true,
+            // clicks route into climb-retargets, leaving the player stuck and unmovable. Give
+            // the climb up and hand back to normal locomotion (gravity + click-to-move).
+            if (!mounting && position.y < BottomStandY() - climbEngageVerticalSlack)
+            {
+                AbortClimb();
+                return;
+            }
+
+            climbNear = Mathf.Abs(position.x - ladderColumnX) <= climbApproachDistance
+                        && IsWithinClimbSpan(position.y);
 
             if (!climbNear)
             {
@@ -729,8 +865,25 @@ namespace IdleTime.Player
             climbVerticalSign = direction;
         }
 
+        // True when the body center sits within the ladder's climbable vertical range —
+        // from where the feet rest on the floor at the base (BottomStandY) up to where they
+        // top out on the platform (TopStandY), plus a little slack. Outside this range the
+        // player isn't on the ladder yet (above it on a ledge, or below the base), so the
+        // climb must NOT suspend gravity — they fall/walk into range under normal locomotion
+        // first. Both stand-Y helpers raycast for the real surface, so a ladder that floats
+        // off its tile edges still resolves the right range.
+        private bool IsWithinClimbSpan(float bodyCenterY)
+        {
+            float lower = BottomStandY() - climbEngageVerticalSlack;
+            float upper = TopStandY() + climbEngageVerticalSlack;
+            return bodyCenterY >= lower && bodyCenterY <= upper;
+        }
+
         private void OnClimbReachedTarget(ref Vector2 position)
         {
+            if (drawNavGizmos)
+                Debug.Log($"[Climb] reached target exit={climbExit} pos={position} targetY={climbTargetY:F2}");
+
             switch (climbExit)
             {
                 case ClimbExit.Top:
@@ -741,6 +894,13 @@ namespace IdleTime.Player
                     mountTimer = 0f;
                     mountFromY = position.y;                       // offset height — climb_top lines up here
                     mountToY = TopStandY() - topStandYOffset;      // un-offset surface — feet on top of the terrain
+                    // A ladder that rises through a gap in the platform has NO ground over the
+                    // column, so finishing at ladderColumnX leaves the player hanging in the
+                    // gap — they fall back down the moment the climb ends and the next leg's
+                    // sideways walk is blocked by the platform edge. Deposit them on the solid
+                    // ground beside the column instead (biased toward where they're headed).
+                    mountFromX = position.x;
+                    mountToX = ResolveTopDismountX(mountToY);
                     position.x = ladderColumnX;
                     if (animator != null)
                     {
@@ -761,15 +921,81 @@ namespace IdleTime.Player
         {
             mountTimer += deltaTime;
             float t = climbTopDuration > 0f ? Mathf.Clamp01(mountTimer / climbTopDuration) : 1f;
-            position.x = ladderColumnX;
+            // Carry the player up AND over onto the platform beside the column in one motion,
+            // so a through-the-gap ladder finishes with the feet on solid ground.
+            position.x = Mathf.Lerp(mountFromX, mountToX, t);
             position.y = Mathf.Lerp(mountFromY, mountToY, t);
             climbVerticalSign = 0f;
 
             if (t >= 1f)
             {
+                position.x = mountToX;
                 position.y = mountToY;
                 EndClimb();
             }
+        }
+
+        // Picks the X to finish a top-out on: the ladder column if solid ground sits directly
+        // over it, otherwise the adjacent cell that HAS ground — preferring the side the player
+        // is about to head toward (the pending nav/post-climb walk), so they top out facing and
+        // standing where they're going rather than over the gap the ladder rose through.
+        private float ResolveTopDismountX(float standCenterY)
+        {
+            float feetY = standCenterY - FeetToCenter;
+            float cell = ladderTilemap != null && ladderTilemap.layoutGrid != null
+                ? ladderTilemap.layoutGrid.cellSize.x : 1f;
+
+            float bias = PendingDismountDirection();
+            bool col = GroundAtTop(ladderColumnX, feetY);
+            bool left = GroundAtTop(ladderColumnX - cell, feetY);
+            bool right = GroundAtTop(ladderColumnX + cell, feetY);
+
+            float chosen;
+            if (col) chosen = ladderColumnX;
+            else if (bias > 0f && right) chosen = ladderColumnX + cell;
+            else if (bias < 0f && left) chosen = ladderColumnX - cell;
+            else if (left) chosen = ladderColumnX - cell;
+            else if (right) chosen = ladderColumnX + cell;
+            else chosen = ladderColumnX;   // no ground either side — stay put rather than walk off into space
+
+            if (drawNavGizmos)
+                Debug.Log($"[Climb] dismountX feetY={feetY:F2} bias={bias} ground(L/C/R)={left}/{col}/{right} chosen={chosen:F2}");
+
+            return chosen;
+        }
+
+        // +1 / -1 toward the next destination after the climb, or 0 if none is known yet.
+        private float PendingDismountDirection()
+        {
+            if (hasPostClimbWalk) return Mathf.Sign(postClimbWalkX - ladderColumnX);
+            if (navActive && navIndex + 1 < navPath.Count)
+                return Mathf.Sign(navPath[navIndex + 1].World.x - ladderColumnX);
+            return 0f;
+        }
+
+        // Ground whose top surface sits at ~feetY, probed at the given X — i.e. a platform the
+        // player could stand on right there.
+        private bool GroundAtTop(float x, float feetY)
+        {
+            return HasGroundAt(new Vector2(x, feetY + 0.5f), 0.7f);
+        }
+
+        // Give up the climb entirely and return the player to normal locomotion — used when
+        // the body has left the ladder span downward (fell off the base) and can no longer
+        // re-engage, so it must not stay latched in climb state.
+        private void AbortClimb()
+        {
+            climbing = false;
+            climbNear = false;
+            mounting = false;
+            climbVerticalSign = 0f;
+            hasPostClimbWalk = false;
+            navActive = false;          // the route assumed the ladder; it's no longer valid
+            hasTarget = false;
+            if (animator != null) animator.speed = 1f;
+
+            if (drawNavGizmos)
+                Debug.Log($"[Climb] ABORT — fell below base, resuming locomotion. pos={body.position}");
         }
 
         private void EndClimb()
@@ -779,6 +1005,9 @@ namespace IdleTime.Player
             mounting = false;
             climbVerticalSign = 0f;
             verticalVelocity = 0f;
+
+            if (drawNavGizmos)
+                Debug.Log($"[Climb] end pos={body.position} nav={navActive}/{navIndex} postWalk={hasPostClimbWalk}->{postClimbWalkX:F2}");
 
             // Mid-route: the climb leg is done, move on to the next leg.
             if (navActive)
@@ -819,12 +1048,28 @@ namespace IdleTime.Player
 
                 case NavMoveType.ClimbUp:
                 case NavMoveType.ClimbDown:
-                    // step.World is a ladder cell at the end we're heading for, so
-                    // BeginOrRetargetClimb derives the right Top/Bottom exit from it.
+                    // The leg already encodes the direction, so set the exit explicitly
+                    // instead of inferring it from the grab cell's neighbours. A ladder that
+                    // runs as one continuous column through a platform hands us a grab cell
+                    // mid-column; neighbour-inference there reads it as an interior point and
+                    // the player hangs instead of topping out / bottoming off.
                     hasPostClimbWalk = false;
-                    BeginOrRetargetClimb(step.World);
+                    BeginClimbToExit(step.World, step.Type == NavMoveType.ClimbUp ? ClimbExit.Top : ClimbExit.Bottom);
                     break;
             }
+        }
+
+        // Dumps the legs of the route just picked, so the gizmo's shape can be cross-checked
+        // against the actual leg types/targets (grey=walk, yellow=hop, cyan=climb).
+        private void LogNavPath(Vector2 target)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.Append($"[Nav] {navPath.Count} legs → {target}:");
+            for (int i = 0; i < navPath.Count; i++)
+            {
+                sb.Append($"\n  {i}: {navPath[i].Type} @ {navPath[i].World}");
+            }
+            Debug.Log(sb.ToString());
         }
 
         private void AdvanceNav()
@@ -867,21 +1112,21 @@ namespace IdleTime.Player
                 return false;
             }
 
-            Vector2 rayOrigin = clickWorldPosition + Vector2.up * groundClickProjectionHeight;
-            float rayDistance = groundClickProjectionHeight * 2f;
-            int hitCount = Physics2D.Raycast(rayOrigin, Vector2.down, terrainFilter, castHits, rayDistance);
-            for (int i = 0; i < hitCount; i++)
+            // Resolve the walkable SURFACE of the floor that was actually clicked by walking up
+            // to the top of the contiguous solid column the click landed in. This returns the
+            // floor's top whichever tile of a thick floor was hit, and — because the empty room
+            // gap between floors breaks the walk-up — it can never jump to a HIGHER floor.
+            //
+            // The old probe cast a tall ray DOWN from well above the click and took the first
+            // surface, so a floor sitting within that height above the click got picked instead:
+            // clicking the lower floor selected the row above it.
+            Vector3Int top = clickedCell;
+            while (clickedTilemap.HasTile(top + Vector3Int.up))
             {
-                if (IsOwnCollider(castHits[i].collider))
-                {
-                    continue;
-                }
-
-                groundPoint = castHits[i].point;
-                return true;
+                top += Vector3Int.up;
             }
 
-            groundPoint = GetTileTopPoint(clickedTilemap, clickedCell, clickWorldPosition.x);
+            groundPoint = GetTileTopPoint(clickedTilemap, top, clickWorldPosition.x);
             return true;
         }
 
@@ -1270,6 +1515,17 @@ namespace IdleTime.Player
                 animator.speed = 1f;
                 animator.SetBool("isClimbing", false);
                 animator.CrossFadeInFixedTime("Movement", 0.08f, 0);
+            }
+
+            // Face the way we're ACTUALLY moving. Driving the flip from real horizontal
+            // velocity each step — rather than only at click/target-set time — kills the
+            // moonwalk: every retarget path (nav fallback, post-climb walk, walk-to-base)
+            // now faces correctly without each having to remember to set flipX. When stopped
+            // (velocity ~0) we hold the last facing, so PlayerAttack's FaceDirection still
+            // wins while idle.
+            if (flipSpriteToDirection && spriteRenderer != null && Mathf.Abs(horizontalVelocity) > 0.01f)
+            {
+                spriteRenderer.flipX = horizontalVelocity < 0f;
             }
 
             float xVelocity = hasTarget ? 1f : 0f;
