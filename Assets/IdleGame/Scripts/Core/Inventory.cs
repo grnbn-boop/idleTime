@@ -15,7 +15,11 @@ namespace IdleTime.Core
     {
         public static Inventory Instance { get; private set; }
 
-        public const int MaxSlots = 16;
+        // Total backing slots. The inventory UI shows one page (PageSize) at a time and
+        // pages through the rest. Doubling this stays save-compatible: persistence is
+        // index-based and SetSlot/ApplyInventory bounds-guard, so older 16-slot saves load
+        // unchanged into the low slots.
+        public const int MaxSlots = 32;
 
         InventorySlot[] _slots;
 
@@ -135,6 +139,23 @@ namespace IdleTime.Core
                     if (_slots[i].IsEmpty) return false;
                 return true;
             }
+        }
+
+        // Would AddItem succeed? True for a stackable item that already has a stack to grow,
+        // or for anything when at least one slot is free. Lets callers (e.g. a shop purchase)
+        // refuse before spending rather than add-then-refund.
+        public bool CanAccept(ItemDefinition item)
+        {
+            if (item == null) return false;
+
+            bool stackable = item.equipSlot == EquipSlot.None;
+            if (stackable)
+            {
+                for (int i = 0; i < MaxSlots; i++)
+                    if (!_slots[i].IsEmpty && _slots[i].item == item) return true;
+            }
+
+            return !IsFull;
         }
     }
 }

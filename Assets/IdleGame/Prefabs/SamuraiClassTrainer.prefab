@@ -288,7 +288,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3087ea6c42874612bc5c55c83bc8897d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::IdleTime.Interactions.SamuraiIdleAnimator
+  m_EditorClassIdentifier: Assembly-CSharp::IdleTime.Interactions.NpcIdleAnimator
   spriteRenderer: {fileID: 2719000000000000002}
   frames:
   - {fileID: -1319665287, guid: 2a457bf4481924b428d24029aaa27499, type: 3}

@@ -14,6 +14,12 @@ namespace IdleTime.Core
         public ItemType itemType = ItemType.Misc;
         [TextArea] public string description;
 
+        [Header("Value")]
+        [Tooltip("Reference worth of one unit, in gold. Shops derive the sell price from " +
+                 "this (baseValue × the shop's sell multiplier) and may fall back to it for " +
+                 "the buy price when a stock entry leaves its price at 0.")]
+        public int baseValue;
+
         [Header("Currency — used when this item is a coin")]
         [Tooltip("Gold this coin is worth. > 0 makes the item soft currency: picking it up " +
                  "adds to the player's gold instead of taking an inventory slot.")]

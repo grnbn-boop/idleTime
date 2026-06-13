@@ -2,7 +2,12 @@ using UnityEngine;
 
 namespace IdleTime.Interactions
 {
-    public class SamuraiIdleAnimator : MonoBehaviour
+    /// <summary>
+    /// Generic sprite-sheet idle looper for NPCs. Cycles a frame array on a
+    /// SpriteRenderer at a fixed rate. Nothing role-specific lives here — the
+    /// same component drives the samurai trainer, shop NPCs, and plain talkers.
+    /// </summary>
+    public class NpcIdleAnimator : MonoBehaviour
     {
         [SerializeField] private SpriteRenderer spriteRenderer;
         [SerializeField] private Sprite[] frames;

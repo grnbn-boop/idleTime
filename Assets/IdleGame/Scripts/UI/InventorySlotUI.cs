@@ -119,9 +119,11 @@ namespace IdleTime.UI
 
         public void OnPointerClick(PointerEventData eventData)
         {
-            // Right-click discards the whole stack to free the slot.
+            // Right-click sells one unit to an open shop; with no shop open it falls back
+            // to discarding the whole stack to free the slot.
             if (eventData.button == PointerEventData.InputButton.Right)
             {
+                if (TrySellToOpenShop()) return;
                 Discard();
                 return;
             }
@@ -158,7 +160,37 @@ namespace IdleTime.UI
         {
             var slot = Inventory.Instance?.GetSlot(_slotIndex);
             if (slot == null || slot.IsEmpty) return;
-            TooltipManager.Instance?.Show(ItemTooltips.Describe(slot.item, PlayerManager.Instance?.ActiveCharacter));
+
+            string text = ItemTooltips.Describe(slot.item, PlayerManager.Instance?.ActiveCharacter);
+
+            // While a shop is open, telegraph that right-click sells this stack.
+            var shop = ShopUI.Instance != null && ShopUI.Instance.IsOpen ? ShopUI.Instance.ActiveShop : null;
+            if (shop != null)
+                text += $"\n<color=#E8C84A>Right-click to sell: {shop.GetSellPrice(slot.item)}g</color>";
+
+            TooltipManager.Instance?.Show(text);
+        }
+
+        // Sells one unit of this slot to the active shop, if the shop overlay is open.
+        // Returns false (so right-click can fall back to Discard) when no shop is open.
+        bool TrySellToOpenShop()
+        {
+            var shopUI = ShopUI.Instance;
+            if (shopUI == null || !shopUI.IsOpen) return false;
+            var shop = shopUI.ActiveShop;
+            if (shop == null || _slotIndex < 0) return false;
+
+            var slot = Inventory.Instance?.GetSlot(_slotIndex);
+            if (slot == null || slot.IsEmpty) return false;
+
+            var item = slot.item;
+            int price = shop.GetSellPrice(item);
+            PlayerManager.Instance?.AddGold(price);
+            Inventory.Instance.RemoveOne(_slotIndex);
+            shopUI.ReportSale(item, price);
+
+            if (Inventory.Instance.GetSlot(_slotIndex).IsEmpty) TooltipManager.Instance?.Hide();
+            return true;
         }
 
         // Unwearable equipment (wrong class) reads at a glance via a red dim.

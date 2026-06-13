@@ -90,7 +90,7 @@ namespace IdleTime.Editor
             renderer.sprite = idleSprites[0];
             renderer.sortingOrder = 9;
 
-            SamuraiIdleAnimator idleAnimator = root.AddComponent<SamuraiIdleAnimator>();
+            NpcIdleAnimator idleAnimator = root.AddComponent<NpcIdleAnimator>();
             ConfigureIdleAnimator(idleAnimator, renderer, idleSprites);
 
             Rigidbody2D body = root.AddComponent<Rigidbody2D>();
@@ -121,7 +121,7 @@ namespace IdleTime.Editor
             return root;
         }
 
-        private static void ConfigureIdleAnimator(SamuraiIdleAnimator idleAnimator, SpriteRenderer renderer, Sprite[] idleSprites)
+        private static void ConfigureIdleAnimator(NpcIdleAnimator idleAnimator, SpriteRenderer renderer, Sprite[] idleSprites)
         {
             SerializedObject serialized = new SerializedObject(idleAnimator);
             serialized.FindProperty("spriteRenderer").objectReferenceValue = renderer;
