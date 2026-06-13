@@ -52,7 +52,7 @@ namespace IdleTime.CameraRig
         {
             if (target == null)
             {
-                ClickToMove2D player = FindFirstObjectByType<ClickToMove2D>();
+                ClickToMove2D player = FindAnyObjectByType<ClickToMove2D>();
                 if (player != null)
                 {
                     target = player.transform;

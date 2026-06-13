@@ -105,7 +105,7 @@ namespace IdleTime.UI
             // Include inactive so a hand-placed-but-disabled HUD GameObject suppresses the
             // auto-spawn — otherwise unticking a placed instance would just get a fresh
             // active one created here, and you could never turn the HUD off.
-            if (FindObjectsByType<PortalNavHUD>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length > 0) return;
+            if (FindObjectsByType<PortalNavHUD>(FindObjectsInactive.Include).Length > 0) return;
             new GameObject("Portal Nav HUD").AddComponent<PortalNavHUD>();
         }
 
@@ -115,7 +115,7 @@ namespace IdleTime.UI
         [MenuItem("IdleTime/Add Portal Nav HUD To Scene")]
         static void AddToScene()
         {
-            if (FindObjectsByType<PortalNavHUD>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length > 0)
+            if (FindObjectsByType<PortalNavHUD>(FindObjectsInactive.Include).Length > 0)
             {
                 Debug.Log("[PortalNavHUD] Scene already contains a Portal Nav HUD.");
                 return;

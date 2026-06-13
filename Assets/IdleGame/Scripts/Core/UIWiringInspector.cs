@@ -31,13 +31,13 @@ namespace IdleTime.Core
 
         void Dump()
         {
-            var managers = FindObjectsByType<UIManager>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var managers = FindObjectsByType<UIManager>(FindObjectsInactive.Include);
             var sb = new StringBuilder();
             sb.AppendLine($"[UIWiring] UIManager instances in scene: {managers.Length}");
             foreach (var m in managers)
                 sb.AppendLine($"    • UIManager on '{Path(m.gameObject)}' (activeInHierarchy={m.gameObject.activeInHierarchy})");
 
-            var buttons = FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var buttons = FindObjectsByType<Button>(FindObjectsInactive.Include);
             sb.AppendLine($"[UIWiring] Buttons found: {buttons.Length}. onClick wiring —");
             foreach (var b in buttons)
             {

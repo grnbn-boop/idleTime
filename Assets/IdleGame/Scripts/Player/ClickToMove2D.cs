@@ -194,7 +194,7 @@ namespace IdleTime.Player
                 ladderTilemap = FindLadderTilemap();
             }
 
-            navGraph = FindFirstObjectByType<TileNavGraph>();
+            navGraph = FindAnyObjectByType<TileNavGraph>();
         }
 
         private void Start()
@@ -1091,7 +1091,7 @@ namespace IdleTime.Player
                 return null;
             }
 
-            Tilemap[] tilemaps = FindObjectsByType<Tilemap>(FindObjectsSortMode.None);
+            Tilemap[] tilemaps = FindObjectsByType<Tilemap>();
             for (int i = 0; i < tilemaps.Length; i++)
             {
                 if (tilemaps[i].gameObject.layer == ladderLayer)

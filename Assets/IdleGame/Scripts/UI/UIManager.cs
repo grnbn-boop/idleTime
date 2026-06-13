@@ -66,7 +66,7 @@ public class UIManager : MonoBehaviour
     // GameObject's hierarchy (separate UI canvas root), and overlay buttons start inactive.
     static Button FindButton(string name)
     {
-        foreach (var b in FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (var b in FindObjectsByType<Button>(FindObjectsInactive.Include))
             if (b.name == name) return b;
         return null;
     }

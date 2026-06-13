@@ -663,6 +663,17 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!114 &210085615 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3777441569053915661, guid: c63b492585cf61e49b15c063996ef366, type: 3}
+  m_PrefabInstance: {fileID: 558848400}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!1 &349952496
 GameObject:
   m_ObjectHideFlags: 0
@@ -1947,7 +1958,7 @@ PrefabInstance:
     - target: {fileID: 8480661172030926183, guid: c63b492585cf61e49b15c063996ef366, type: 3}
       propertyPath: prevButton
       value: 
-      objectReference: {fileID: 1660573616}
+      objectReference: {fileID: 210085615}
     - target: {fileID: 8480661172030926183, guid: c63b492585cf61e49b15c063996ef366, type: 3}
       propertyPath: buildPlaceholderControls
       value: 0
@@ -3906,17 +3917,6 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: c3ec47bc27917e342ae32652b0fd764f, type: 3}
---- !u!114 &1660573616 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7594403866742705888, guid: c63b492585cf61e49b15c063996ef366, type: 3}
-  m_PrefabInstance: {fileID: 558848400}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!1001 &1849749637302291241
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -6,10 +6,11 @@ using IdleTime.Core;
 namespace IdleTime.Interactions
 {
     // The single seam between "the player entered an active portal" and "the world
-    // changes." Wired for OPTION A — one scene per room: a portal carries the build
-    // name of the room to travel to (forward portals → the next room, return portals →
-    // the previous room, since map traversal is just "which scene name does this portal
-    // point at"). The managers (PlayerManager, Inventory, Equipment, SaveManager,
+    // changes." One scene per room: the portal resolves the build
+    // name of the room to travel to from its Destination RoomDefinition (forward portals
+    // → the next room, return portals → the previous room, since map traversal is just
+    // "which scene name does this portal's destination point at"). The managers
+    // (PlayerManager, Inventory, Equipment, SaveManager,
     // ScreenFader, this app's other DontDestroyOnLoad singletons) and the static
     // RoomProgress all persist across the load, so progress/inventory carry over and a
     // room you've cleared stays cleared.
@@ -17,9 +18,6 @@ namespace IdleTime.Interactions
     // Setup to make a destination live: create the room as its own .unity scene and add
     // it to Build Settings (File ▸ Build Settings ▸ Add Open Scenes). Until then, Go()
     // logs a clear warning rather than throwing, so half-authored maps don't break play.
-    //
-    // (Options B "one big scene, teleport" and C "additive scenes" remain valid future
-    // pivots — A and C share the per-scene room layout, so this is a free upgrade path.)
     public static class LevelLoader
     {
         const float FadeOutDuration = 0.4f;
@@ -29,8 +27,9 @@ namespace IdleTime.Interactions
         {
             if (string.IsNullOrWhiteSpace(destination))
             {
-                Debug.Log("[LevelLoader] Portal entered, but no destination is set " +
-                          "(stub). Set 'Destination Scene Name' on the PortalController.");
+                Debug.Log("[LevelLoader] Portal entered, but no destination scene was resolved. " +
+                          "Assign the portal's Room and Destination RoomDefinitions, and give the " +
+                          "destination RoomDefinition a Scene Name.");
                 return;
             }
 

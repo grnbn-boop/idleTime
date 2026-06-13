@@ -61,7 +61,7 @@ namespace IdleTime.UI
 
         public static void EnsureCamera()
         {
-            foreach (var c in UnityEngine.Object.FindObjectsByType<Camera>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            foreach (var c in UnityEngine.Object.FindObjectsByType<Camera>(FindObjectsInactive.Exclude))
                 if (c.isActiveAndEnabled) return;
 
             var go = new GameObject("Menu Camera");
